@@ -1,0 +1,106 @@
+/* Styles pour le positionnement fixe des éléments */
+.fixed-elements {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 240px;
+    background-color: rgb(0, 180, 0);
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+h1 {
+    padding: 2px;
+    margin: 2px;
+    top: 5px;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    padding-top: 0px;
+}
+
+textarea {
+    width: 100%;
+    height: 130px;
+    display: block;
+    margin: auto;
+}
+
+.button-container {
+    text-align: center;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+table {
+    border: 1px solid black;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    padding: 5px;
+    text-align: center;
+    border: 1px solid black;
+    width: auto;
+    max-width: 205px;
+    white-space: nowrap;
+}
+td {
+    padding: 5px;
+    text-align: right;
+    border: 1px solid black;
+    width: auto;
+    max-width: 205px;
+    white-space: nowrap;
+}
+
+th, td div {
+    overflow: visible; /* Permettre de voir le texte complet */
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+thead th {
+    position: sticky;
+    top: -1px;
+    background-color: white;
+    z-index: 1001;
+    padding: 20px;
+}
+
+.tablecontainer {
+    height: 75vh;
+    overflow-y: auto;
+    position: fixed;
+    top: 20vh;
+}
+
+/* Styles pour les libellés de tableau et les en-têtes */
+th {
+    background-color: black;
+    color: white;
+}
+
+/* Styles spécifiques pour les en-têtes de tableau */
+thead th {
+    background-color: black;
+    color: white;
+}
