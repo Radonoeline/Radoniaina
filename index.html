@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QAS Utility</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+	<style>
+        #menu {
+            background-color: white; /* Définit le fond blanc */
+            padding: 10px; /* Optionnel : ajoute un peu d'espace intérieur */
+            border-radius: 5px; /* Optionnel : arrondit les coins */
+        }
+    </style>
     <style>
 	
 	
@@ -17,6 +24,8 @@
 			
             overflow-x: hidden;
         }
+
+	    
         .menu-popup {
             display: none;
             position: fixed;
@@ -72,12 +81,12 @@
     <span id="currentpage"></span>
     <button onclick="toggleMenu()">Open Menu</button>
 </div>
-<div id="menu" class="menu-popup">
+<div id="menu" class="menu-popup" style="background-color: white; padding: 10px; border-radius: 5px;">
     <ul>
         <li><a href="#" onclick="loadPage('assets/Flexible_Data_Table_Generator.html', this)">Flexible Table Generator</a></li>
-		<li><a href="#" onclick="loadPage('assets/Top Performer_Low_Worker.html', this)">Top Performer & Low Worker</a></li>
-		<li><a href="#" onclick="loadPage('assets/Rado_Utilitaire_Multipage.html', this)">Multipage Table Generator</a></li>
-	    	<li><a href="#" onclick="loadPage('assets/CS_FR_JSON_REGENERATOR.html', this)">JSON Generator CS/FU</a></li>
+        <li><a href="#" onclick="loadPage('assets/Top Performer_Low_Worker.html', this)">Top Performer & Low Worker</a></li>
+        <li><a href="#" onclick="loadPage('assets/Rado_Utilitaire_Multipage.html', this)">Multipage Table Generator</a></li>
+        <li><a href="#" onclick="loadPage('assets/CS_FR_JSON_REGENERATOR.html', this)">JSON Generator CS/FU</a></li>
     </ul>
 </div>
 <main id="mainContent"></main>
