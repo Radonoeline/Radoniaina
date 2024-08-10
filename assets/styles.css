@@ -33,7 +33,7 @@ th {
 /* Styles de base */
 body {
     font-family: Arial, sans-serif;
-    background-color: #f0f0f0; /* Arrière-plan clair pour le contraste */
+    background-color: transparent; /* Rend le fond transparent */
     color: #333; /* Couleur du texte principale */
 }
 
