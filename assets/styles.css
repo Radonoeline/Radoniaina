@@ -1,7 +1,39 @@
+/* Style pour le conteneur principal */
+.main-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Style pour les paires de tables */
+.table-pair {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px; /* Espacement entre les paires de tables */
+}
+
+/* Style pour les tables */
+table {
+    border-collapse: collapse;
+    width: 48%; /* Ajustez la largeur si nécessaire */
+    margin-right: 2%; /* Espacement entre les tables */
+}
+
+/* Réinitialisation de la marge pour la dernière table de chaque paire */
+.table-pair table:last-child {
+    margin-right: 0;
+}
+
+/* Style optionnel pour le texte des en-têtes de table */
+th {
+    background-color: #f2f2f2;
+    padding: 8px;
+}
+
+
 /* Styles de base */
 body {
     font-family: Arial, sans-serif;
-    //background-color: rgba(200, 200, 200, 0.4); /* Arrière-plan clair pour le contraste */
+    background-color: #f0f0f0; /* Arrière-plan clair pour le contraste */
     color: #333; /* Couleur du texte principale */
 }
 
