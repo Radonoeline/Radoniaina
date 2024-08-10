@@ -27,20 +27,9 @@
 <body>
     <header>
         <h1 align="center">Worker Performance and Error Report</h1>
-		<h3 align="center">Generate Top 10 WorkerIDs with Most Correct/Incorrect Responses per Attribute</h3>
 		<div id="controls">
         <input type="file" id="csvFileInput" accept=".csv" />
 			<button onclick="executeAllFunctions()">GENERATE 10 TOPS</button>
-            <label for="tableSelect">Select table to Copy :</label>
-            <select id="tableSelect">
-				<option value="resultstable">Overall Response Evaluation</option>
-				<option value="resultsTopCMaj">Top Correct Majority Per WorkerId</option>
-				<option value="resultsTopCMin">Top Correct Minority Per WorkerId</option>
-				<option value="resultsTopIMaj">Top Incorrect Majority Per WorkerId</option>
-				<option value="resultsTopIMin">Top Incorrect Minority Per WorkerId</option>
-			</select>
-
-            <button id="copyDataButton" onClick="copyData()">Copy Data</button>
         </div>
     </header>
 	<table id="resultsTopCMaj"></table>
@@ -49,6 +38,7 @@
 	<table id="resultsTopIMin"></table>
     <table id="resultstable"></table>
     <script>
+		//SCRIPT POUR LE TOP WORKER ET LOW PERFORMANCE PAGE
 		//SCRIPT POUR AVOIR LE DONNEES GLOBALE POUR LE CALCUL
         document.getElementById('csvFileInput').addEventListener('change', handleFileSelect, false);
         function handleFileSelect(event) {
