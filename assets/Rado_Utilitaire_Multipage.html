@@ -792,6 +792,12 @@ function processData(data) {
     tbody.appendChild(footerRow);
     table.appendChild(thead);
     table.appendChild(tbody);
+     //SCROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLLL
+	var table = document.getElementById("consensusWorkerID");
+	table.scrollIntoView({
+                behavior: "smooth",  // Fait défiler de manière fluide
+                block: "center"      // Centre la table dans la vue verticale de la page
+            });
 }
 
 
@@ -899,6 +905,12 @@ function processData(data) {
     tbody.appendChild(footerRow);
     table.appendChild(thead);
     table.appendChild(tbody);
+    //SCROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLLL
+	var table = document.getElementById("accuracyWorkerID");
+	table.scrollIntoView({
+                behavior: "smooth",  // Fait défiler de manière fluide
+                block: "center"      // Centre la table dans la vue verticale de la page
+            });
 }
 
 // Ensure the caption is visible with CSS
@@ -1001,6 +1013,12 @@ document.head.appendChild(style);
     });
 
     table.appendChild(tbody);
+    //SCROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLLL
+	var table = document.getElementById("agreementTable");
+	table.scrollIntoView({
+                behavior: "smooth",  // Fait défiler de manière fluide
+                block: "center"      // Centre la table dans la vue verticale de la page
+            });
 }
 		
 		
@@ -1075,6 +1093,12 @@ document.head.appendChild(style);
     });
 
     table.appendChild(tbody);
+    //SCROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLLL
+	var table = document.getElementById("summaryTable");
+	table.scrollIntoView({
+                behavior: "smooth",  // Fait défiler de manière fluide
+                block: "center"      // Centre la table dans la vue verticale de la page
+            });
 }
 
 
@@ -1229,6 +1253,12 @@ document.head.appendChild(style);
         ? ((grandTotalIncorrectMajority + grandTotalIncorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
         : '0,00%';
     totalRow.insertCell().textContent = totalAttributeErrorRate;
+     //SCROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLLL
+	var table = document.getElementById("consensusAttributDetailed");
+	table.scrollIntoView({
+                behavior: "smooth",  // Fait défiler de manière fluide
+                block: "center"      // Centre la table dans la vue verticale de la page
+            });
 }
 
 
