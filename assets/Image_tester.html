@@ -113,57 +113,93 @@ button:hover {
     }
 
     function validateImageURLs() {
-        if (imageUrls.length === 0) {
-            alert('No URLs loaded. Please load a CSV file first.');
-            return;
-        }
+    if (imageUrls.length === 0) {
+        alert('No URLs loaded. Please load a CSV file first.');
+        return;
+    }
 
-        var results = document.getElementById('results');
-        var table = document.createElement('table');
-        var tbody = document.createElement('tbody');
-        var m = 0; // Iterator
-        var w = 0; // Iterator for Valid
-        var h = 0; // Iterator for Invalid
-        var count = imageUrls.length; // Count of URLs
+    var results = document.getElementById('results');
+    var table = document.createElement('table');
+    var tbody = document.createElement('tbody');
+    var m = 0; // Iterator
+    var w = 0; // Iterator for Valid
+    var h = 0; // Iterator for Invalid
+    var count = imageUrls.length; // Count of URLs
 
-        results.innerHTML = ''; // Clear previous results
+    results.innerHTML = ''; // Clear previous results
 
+    document.getElementById('progress').innerText = 'Processing: ' + m + '/' + count + ', Valid: ' + w + ', Invalid: ' + h;
+
+    imageUrls.forEach(function (url, index) {
+        var img = new Image();
+        img.onload = function () {
+            var result = getMaxAttribute(originalData[index]['Answer.output_data']);
+            appendRow(url, 'Valid', index, result.maxAttribute, result.maxCount);
+            w++;
+            updateProgress();
+        };
+        img.onerror = function () {
+            h++;
+            updateProgress();
+        };
+        img.src = url;
+    });
+
+    function appendRow(url, status, index, maxAttribute, maxCount) {
+        // Only append if the image is valid
+        var row = document.createElement('tr');
+        row.innerHTML = `<td>${originalData[index]['Answer.output_data']}</td>
+                         <td>${originalData[index]['HITId']}</td>
+                         <td>${url}</td>
+                         <td>${maxAttribute}: ${maxCount}</td>`;
+        tbody.appendChild(row);
+        m++;
+    }
+
+    function updateProgress() {
         document.getElementById('progress').innerText = 'Processing: ' + m + '/' + count + ', Valid: ' + w + ', Invalid: ' + h;
+        if (m >= count) {
+            document.getElementById('progress').innerText += ' Done!';
+        }
+    }
 
-        imageUrls.forEach(function (url, index) {
-            var img = new Image();
-            img.onload = function () {
-                appendRow(url, 'Valid', index);
-                w++;
-                updateProgress();
-            };
-            img.onerror = function () {
-                h++;
-                updateProgress();
-            };
-            img.src = url;
+    function getMaxAttribute(outputData) {
+        var attributes = JSON.parse(outputData); // Parse the JSON data
+        var attributeCounts = {};
+
+        // Iterate through each item in the JSON object
+        Object.keys(attributes).forEach(function (key) {
+            var attributeSet = attributes[key];
+            Object.keys(attributeSet).forEach(function (attribute) {
+                if (attributeSet[attribute] === true) {
+                    if (attributeCounts[attribute]) {
+                        attributeCounts[attribute]++;
+                    } else {
+                        attributeCounts[attribute] = 1;
+                    }
+                }
+            });
         });
 
-        function appendRow(url, status, index) {
-            // Only append if the image is valid
-            var row = document.createElement('tr');
-            row.innerHTML = `<td>${originalData[index]['Answer.output_data']}</td>
-                             <td>${originalData[index]['HITId']}</td>
-                             <td>${url}</td>`;
-            tbody.appendChild(row);
-            m++;
-        }
+        // Find the attribute with the maximum count
+        var maxAttribute = null;
+        var maxCount = 0;
 
-        function updateProgress() {
-            document.getElementById('progress').innerText = 'Processing: ' + m + '/' + count + ', Valid: ' + w + ', Invalid: ' + h;
-            if (m > count) {
-                document.getElementById('progress').innerText += ' Done!';
+        Object.keys(attributeCounts).forEach(function (attribute) {
+            if (attributeCounts[attribute] > maxCount) {
+                maxCount = attributeCounts[attribute];
+                maxAttribute = attribute;
             }
-        }
+        });
 
-        table.appendChild(tbody);
-        results.appendChild(table);
+        return { maxAttribute: maxAttribute || 'N/A', maxCount: maxCount }; // Return both maxAttribute and maxCount
     }
+
+    table.appendChild(tbody);
+    results.appendChild(table);
+}
+
+
 
     // Attacher l'événement au chargement du document
 document.addEventListener("DOMContentLoaded", function() {
