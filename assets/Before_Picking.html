@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Loader et Traitement</title>
+    <style>
+    /* Style général des tables */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    th, td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: left;
+    }
+
+    /* Style pour les en-têtes de toutes les tables */
+    th {
+        background-color: #000;
+        color: #fff;
+        font-weight: bold;
+    }
+
+    /* Masquer le div contenant la table source */
+    #tableContainer {
+        display: none;
+    }
+
+    /* Style pour le div contenant la nouvelle table */
+    #filteredTableContainer {
+        display: block;
+        margin-top: 30px;
+    }
+
+    /* Style pour les boutons et les inputs */
+    button, input[type="button"], input[type="submit"], .custom-file-upload {
+        background-color: #007BFF;
+        color: #fff;
+        padding: 10px 15px;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        border-radius: 4px;
+        display: inline-block;
+    }
+
+    /* Style pour le bouton au survol */
+    button:hover, input[type="button"]:hover, input[type="submit"]:hover, .custom-file-upload:hover {
+        background-color: #0056b3;
+    }
+</style>
+
+
+
+</head>
+<body>
+
+    <h1>CSV Loader et Traitement</h1>
+    
+    <!-- Bouton pour charger le CSV -->
+    <label for="csvFileInput" class="custom-file-upload">
+    Load CSV
+	</label>
+	<input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+    <button onclick="loadCSV()">Generate Table</button>
+
+    <!-- Div pour afficher la table générée -->
+	<label>
+    <input type="checkbox" id="toggleTable" onclick="toggleTableVisibility()"> Show/Hide Table
+	</label>
+	<br>
+	<br>
+    <div id="tableContainer" onclick="copyTableToClipboard('tableContainer')"></div>
+	<div id="filteredTableContainer" onclick="copyTableToClipboard('filteredTableContainer')"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script>
+        function loadCSV() {
+            const fileInput = document.getElementById('csvFileInput');
+            if (fileInput.files.length === 0) {
+                alert("Veuillez sélectionner un fichier CSV.");
+                return;
+            }
+            const file = fileInput.files[0];
+
+            Papa.parse(file, {
+                header: true,
+				delimiter: '\t',
+				skipEmptyLines: true,
+				preview: 500000,
+                complete: function(results) {
+                    const data = results.data;
+                    // Vérifier les en-têtes
+                    if (!data.length || !('Answer.output_data' in data[0]) || !('Input.imageURL' in data[0]) || !('Input.content' in data[0]) || !('AssignmentId' in data[0]) || !('HITId' in data[0])) {
+                        alert("Le fichier CSV ne contient pas les en-têtes nécessaires.");
+                        return;
+                    }
+                    // Si tout est ok, créer la table
+                    createResultTable(data);
+                }
+            });
+        }
+
+    function createResultTable(data) {
+    const tableContainer = document.getElementById('tableContainer');
+    const attributesSet = new Set();
+
+    // Extraire les attributs uniques de toutes les lignes
+    data.forEach(row => {
+        const jsonData = JSON.parse(row['Answer.output_data']);
+        Object.values(jsonData).forEach(attributeData => {
+            for (const key in attributeData) {
+                if (attributeData.hasOwnProperty(key) && !['link_clicked', 'on', 'purchase_availability'].includes(key)) {
+                    attributesSet.add(key);
+                }
+            }
+        });
+    });
+
+    // Créer la table HTML avec les en-têtes
+    let tableHTML = '<table><thead><tr>';
+    tableHTML += '<th>HITId</th><th>Max Percentage</th><th>Nb_Answers</th><th>Top_Attribut</th>';
+    attributesSet.forEach(attr => tableHTML += `<th>${attr}</th>`);
+    tableHTML += '</tr></thead><tbody>';
+
+    data.forEach(row => {
+        let attributeCounts = {};
+        let totalTrueAttributes = 0;
+
+        // Initialiser les compteurs pour chaque attribut
+        attributesSet.forEach(attr => attributeCounts[attr] = 0);
+
+        // Compter les occurrences "true" pour chaque attribut
+        const jsonData = JSON.parse(row['Answer.output_data']);
+        Object.values(jsonData).forEach(attributeData => {
+            for (const key in attributeData) {
+                if (attributeData.hasOwnProperty(key) && attributesSet.has(key)) {
+                    if (attributeData[key] === true) {
+                        attributeCounts[key]++;
+                        totalTrueAttributes++;
+                    }
+                }
+            }
+        });
+
+        // Calculer le pourcentage maximum et déterminer le "Top_Attribut"
+        let maxPercentage = 0;
+        let topAttribut = '';
+        let rowHTML = `<td>${row.HITId}</td>`; // Ajouter HITId en premier
+
+        attributesSet.forEach(attr => {
+            const percentage = totalTrueAttributes > 0 ? (attributeCounts[attr] / totalTrueAttributes) * 100 : 0;
+            if (percentage > maxPercentage) {
+                maxPercentage = percentage;
+                topAttribut = attr;
+            }
+        });
+
+        let nbAnswers = Object.values(attributeCounts).filter(count => count > 0).length;
+
+        // Ajouter les colonnes calculées
+        rowHTML += `<td>${maxPercentage.toFixed(2)}%</td><td>${nbAnswers}</td><td>${topAttribut}</td>`;
+
+        // Ajouter les valeurs pour les attributs
+        attributesSet.forEach(attr => {
+            const percentage = totalTrueAttributes > 0 ? (attributeCounts[attr] / totalTrueAttributes) * 100 : 0;
+            rowHTML += `<td>${percentage > 0 ? percentage.toFixed(2) + '%' : ''}</td>`;
+        });
+
+        tableHTML += `<tr>${rowHTML}</tr>`;
+    });
+
+    tableHTML += '</tbody></table>';
+    tableContainer.innerHTML = tableHTML;
+	filterResults();
+}
+
+
+///DEUXIEME TABLE FILTRER
+
+
+function filterResults() {
+    const table = document.querySelector('#tableContainer table');
+    const rows = Array.from(table.rows).slice(1); // Ignorer l'en-tête
+    const groupedData = {};
+
+    // Grouper les données par HITId
+    rows.forEach(row => {
+        const cells = row.cells;
+        const hitId = cells[0].innerText.trim(); // HITId
+
+        if (!groupedData[hitId]) {
+            groupedData[hitId] = [];
+        }
+        groupedData[hitId].push(Array.from(cells).map(cell => cell.innerText.trim()));
+    });
+
+    // Fonction pour trouver la majorité d'une colonne
+    function findMajority(arr) {
+        const counts = {};
+        arr.forEach(value => {
+            counts[value] = (counts[value] || 0) + 1;
+        });
+        return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+    }
+
+    // Créer la nouvelle table
+    let tableHTML = '<table><thead><tr>';
+    tableHTML += '<th>HITId</th><th>Max Percentage</th><th>Nb_Answers</th><th>Top_Attribut</th>';
+
+    // Ajouter les en-têtes des attributs (colonnes supplémentaires après "Top_Attribut")
+    const attributeHeaders = Array.from(table.rows[0].cells).slice(4).map(cell => cell.innerText);
+    attributeHeaders.forEach(attr => tableHTML += `<th>${attr}</th>`);
+    tableHTML += '</tr></thead><tbody>';
+
+    // Remplir la nouvelle table avec les valeurs majoritaires pour chaque HITId
+    Object.keys(groupedData).forEach(hitId => {
+        const groupedRows = groupedData[hitId];
+
+        // Calculer la majorité des valeurs pour chaque colonne
+        const majorityMaxPercentage = findMajority(groupedRows.map(row => row[1]));
+        const majorityNbAnswers = findMajority(groupedRows.map(row => row[2]));
+        const majorityTopAttribut = findMajority(groupedRows.map(row => row[3]));
+
+        tableHTML += `<tr><td>${hitId}</td><td>${majorityMaxPercentage}</td><td>${majorityNbAnswers}</td><td>${majorityTopAttribut}</td>`;
+
+        // Calculer la majorité pour chaque attribut (les colonnes après "Top_Attribut")
+        attributeHeaders.forEach((_, index) => {
+            const majorityAttributeValue = findMajority(groupedRows.map(row => row[4 + index]));
+            tableHTML += `<td>${majorityAttributeValue}</td>`;
+        });
+
+        tableHTML += '</tr>';
+    });
+
+    tableHTML += '</tbody></table>';
+
+    // Afficher la nouvelle table dans le conteneur
+    document.getElementById('filteredTableContainer').innerHTML = tableHTML;
+}
+
+//
+function toggleTableVisibility() {
+    const tableContainer = document.getElementById('tableContainer');
+    const checkBox = document.getElementById('toggleTable');
+
+    // Afficher ou masquer le div en fonction de l'état de la case à cocher
+    if (checkBox.checked) {
+        tableContainer.style.display = 'block'; // Afficher la table
+    } else {
+        tableContainer.style.display = 'none'; // Cacher la table
+    }
+}
+
+
+function copyTableToClipboard(containerId) {
+    const tableContainer = document.getElementById(containerId);
+    const rows = tableContainer.querySelectorAll('tr');
+    let clipboardText = '';
+
+    // Parcourez les lignes de la table pour construire le texte à copier
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('th, td');
+        const rowText = Array.from(cells).map(cell => cell.innerText).join('\t');
+        clipboardText += rowText + '\n';
+    });
+
+    // Créez un élément temporaire pour copier le contenu
+    const tempElement = document.createElement('textarea');
+    tempElement.value = clipboardText;
+    document.body.appendChild(tempElement);
+
+    // Sélectionnez et copiez le contenu du textarea temporaire
+    tempElement.select();
+    document.execCommand('copy');
+
+    // Supprimez l'élément temporaire
+    document.body.removeChild(tempElement);
+
+    // Optionnel : afficher un message ou un effet visuel pour indiquer que la copie a réussi
+    alert('Table copiée dans le presse-papier sous forme de texte structuré !');
+}
+
+
+    </script>
+
+</body>
+</html>
