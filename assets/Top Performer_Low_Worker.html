@@ -579,7 +579,42 @@
     selection.removeAllRanges();
 }
 
+// Fonction pour copier le contenu d'une table dans le presse-papiers
+async function copyTableToClipboard(table) {
+    if (!table) {
+        console.error('Table non trouvée.');
+        return;
+    }
 
+    // Vérifier si la table est vide
+    if (!table.innerText.trim()) {
+        alert('Table vide');
+        return;
+    }
+
+    try {
+        // Obtenir le contenu de la table
+        const tableText = table.innerText;
+
+        // Copier le contenu dans le presse-papiers en utilisant l'API Clipboard
+        await navigator.clipboard.writeText(tableText);
+
+        // Obtenir l'ID de la table
+        const tableId = table.id || 'sans ID';
+
+        // Afficher une notification pour l'utilisateur avec l'ID de la table
+        alert(`Table ${tableId} copiée dans le presse-papiers!`);
+    } catch (err) {
+        console.error('Erreur lors de la copie dans le presse-papiers:', err);
+    }
+}
+
+// Ajouter l'événement click pour copier une table
+document.querySelectorAll('table').forEach(table => {
+    table.onclick = () => {
+        copyTableToClipboard(table);
+    };
+});
     </script>
 </body>
 </html>
