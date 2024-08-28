@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image URL Validator</title>
+    <style>
+    body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+h2 {
+    margin: 0;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    width: calc(100% - 20px);
+    box-sizing: border-box;
+    top: 0px;
+    position: sticky;
+}
+
+span {
+    font-family: monospace, sans-serif;
+}
+
+button {
+    margin: 10px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#results {
+    margin: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    max-width: 100%;
+    overflow-x: auto; /* Permet un défilement horizontal si le tableau est trop large */
+    font-size: 12px; /* Taille de police réduite */
+    font-family: Arial, sans-serif; /* Police Arial */
+}
+
+#results table {
+    width: 100%;
+    border-collapse: collapse; /* Pour éviter les doubles bordures */
+}
+
+#results th, #results td {
+    padding: 8px;
+    font-size: 12px; /* Taille de police réduite pour les cellules */
+    text-align: left;
+    border-bottom: 1px solid #ddd; /* Séparateurs de ligne */
+    white-space: nowrap; /* Empêche les retours à la ligne automatiques */
+    overflow: hidden; /* Cache le débordement */
+    text-overflow: ellipsis; /* Affiche "..." si le texte dépasse */
+    max-width: 300px; /* Limite la largeur des cellules */
+}
+
+#results th {
+    background-color: #f2f2f2; /* Couleur de fond des en-têtes */
+    font-weight: bold;
+    font-size: 12px; /* Taille de police réduite pour les en-têtes */
+}
+
+#results tr:hover {
+    background-color: #f5f5f5; /* Couleur de fond au survol */
+    font-size: 12px; /* Taille de police cohérente au survol */
+}
+
+		
+    </style>
+</head>
+<body>
+<h2>Image URL Validator <span id="progress"></span></h2>
+<button onclick="loadCSV()">Load CSV</button>
+<button onclick="validateImageURLs()">Validate</button>
+<div id="results"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script>
+    var imageUrls = [];
+    var originalData = []; // Variable to store the original data from the CSV
+
+    function loadCSV() {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = function(event) {
+            var file = event.target.files[0];
+            Papa.parse(file, {
+                header: true,
+                complete: function(results) {
+                    originalData = results.data; // Store original data
+                    imageUrls = results.data.map(row => row['Input.imageURL']).filter(url => url);
+                    alert(imageUrls.length + ' URLs loaded from CSV');
+                }
+            });
+        };
+        input.click();
+    }
+
+    function validateImageURLs() {
+        if (imageUrls.length === 0) {
+            alert('No URLs loaded. Please load a CSV file first.');
+            return;
+        }
+
+        var results = document.getElementById('results');
+        var table = document.createElement('table');
+        var tbody = document.createElement('tbody');
+        var m = 0; // Iterator
+        var w = 0; // Iterator for Valid
+        var h = 0; // Iterator for Invalid
+        var count = imageUrls.length; // Count of URLs
+
+        results.innerHTML = ''; // Clear previous results
+
+        document.getElementById('progress').innerText = 'Processing: ' + m + '/' + count + ', Valid: ' + w + ', Invalid: ' + h;
+
+        imageUrls.forEach(function (url, index) {
+            var img = new Image();
+            img.onload = function () {
+                appendRow(url, 'Valid', index);
+                w++;
+                updateProgress();
+            };
+            img.onerror = function () {
+                h++;
+                updateProgress();
+            };
+            img.src = url;
+        });
+
+        function appendRow(url, status, index) {
+            // Only append if the image is valid
+            var row = document.createElement('tr');
+            row.innerHTML = `<td>${originalData[index]['Answer.output_data']}</td>
+                             <td>${originalData[index]['HITId']}</td>
+                             <td>${url}</td>`;
+            tbody.appendChild(row);
+            m++;
+        }
+
+        function updateProgress() {
+            document.getElementById('progress').innerText = 'Processing: ' + m + '/' + count + ', Valid: ' + w + ', Invalid: ' + h;
+            if (m > count) {
+                document.getElementById('progress').innerText += ' Done!';
+            }
+        }
+
+        table.appendChild(tbody);
+        results.appendChild(table);
+    }
+
+    // Attacher l'événement au chargement du document
+document.addEventListener("DOMContentLoaded", function() {
+    var resultsTable = document.getElementById('results');
+    resultsTable.addEventListener('click', copyTableToClipboard);
+});
+
+function copyTableToClipboard() {
+    var results = document.getElementById('results');
+    var range = document.createRange();
+    
+    // Sélectionne uniquement le contenu de la table, en ignorant la première ligne vide
+    range.selectNodeContents(results);
+    
+    // Supprimer la première ligne vide si elle existe
+    var firstNode = results.firstChild;
+    if (firstNode && firstNode.nodeType === Node.TEXT_NODE && firstNode.nodeValue.trim() === '') {
+        results.removeChild(firstNode);
+    }
+
+    window.getSelection().removeAllRanges(); // Pour s'assurer qu'il n'y a pas d'autre texte sélectionné
+    window.getSelection().addRange(range);
+    
+    try {
+        // Exécuter la commande de copie
+        var successful = document.execCommand('copy');
+        var msg = successful ? 'Results copied to clipboard!' : 'Failed to copy results.';
+        alert(msg);
+    } catch (err) {
+        console.error('Failed to copy: ', err);
+    }
+    
+    // Désélectionner le texte après la copie
+    window.getSelection().removeAllRanges();
+}
+
+</script>
+</body>
+</html>
