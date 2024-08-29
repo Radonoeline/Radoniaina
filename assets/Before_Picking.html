@@ -14,7 +14,7 @@
     th, td {
         border: 1px solid #000;
         padding: 8px;
-	color: #fff;
+	color: #000;
         text-align: center;
     }
 
@@ -77,33 +77,49 @@
     <div id="tableContainer" onclick="copyTableToClipboard('tableContainer')"></div>
 	<div id="filteredTableContainer" onclick="copyTableToClipboard('filteredTableContainer')"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="papaparse_rado.js"></script>
     <script>
         function loadCSV() {
-            const fileInput = document.getElementById('csvFileInput');
-            if (fileInput.files.length === 0) {
-                alert("Veuillez sélectionner un fichier CSV.");
-                return;
-            }
-            const file = fileInput.files[0];
+		const fileInput = document.getElementById('csvFileInput');
+		if (fileInput.files.length === 0) {
+			alert("Veuillez sélectionner un fichier CSV.");
+			return;
+		}
+		const file = fileInput.files[0];
 
-            Papa.parse(file, {
-                header: true,
-				delimiter: '\t',
-				skipEmptyLines: true,
-				preview: 500000,
-                complete: function(results) {
-                    const data = results.data;
-                    // Vérifier les en-têtes
-                    if (!data.length || !('Answer.output_data' in data[0]) || !('Input.imageURL' in data[0]) || !('Input.content' in data[0]) || !('AssignmentId' in data[0]) || !('HITId' in data[0])) {
-                        alert("Le fichier CSV ne contient pas les en-têtes nécessaires.");
-                        return;
-                    }
-                    // Si tout est ok, créer la table
-                    createResultTable(data);
-                }
-            });
-        }
+		Papa.parse(file, {
+			header: true,
+			delimiter: '', // Laisser vide pour utiliser le délimiteur par défaut (",")
+			skipEmptyLines: true,
+			preview: 500000,
+			complete: function(results) {
+				const data = results.data;
+				const requiredHeaders = ['Answer.output_data', 'Input.imageURL', 'Input.content', 'AssignmentId', 'HITId'];
+				const missingHeaders = [];
+
+				if (data.length > 0) {
+					requiredHeaders.forEach(header => {
+						if (!(header in data[0])) {
+							missingHeaders.push(header);
+						}
+					});
+				} else {
+					alert("Le fichier CSV est vide ou mal formaté.");
+					return;
+				}
+
+				if (missingHeaders.length > 0) {
+					alert("Le fichier CSV ne contient pas les en-têtes nécessaires suivantes : " + missingHeaders.join(', '));
+					return;
+				}
+
+				// Si tout est ok, créer la table
+				createResultTable(data);
+			}
+		});
+	}
+
+
 
     function createResultTable(data) {
     const tableContainer = document.getElementById('tableContainer');
