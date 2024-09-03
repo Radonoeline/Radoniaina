@@ -131,6 +131,7 @@
             <button onclick="executeBoth()">Agreement / Summary</button>
 			<button id="extract_data">Extraction CRJ</button>
 			<button onClick="generateTable()">ERRORS/ATTRIBUTS/WORKERID</button>
+			<button id="exportButton">Export Brut to TSV</button>
 		</div>
     </header>
 
@@ -1569,6 +1570,28 @@ function showTablePair(tableId1, tableId2) {
     }
 }
 
+
+
+//EXPORT BIG TABLE TO TSV FILE
+document.getElementById('exportButton').addEventListener('click', function() {
+        let table = document.getElementById('resultTable');
+        let rows = table.querySelectorAll('tr');
+        let tsv = [];
+
+        rows.forEach(row => {
+            let cells = row.querySelectorAll('th, td');
+            let rowArray = Array.from(cells).map(cell => cell.innerText.replace(/\s+/g, ' ').trim());
+            tsv.push(rowArray.join('\t'));
+        });
+
+        let blob = new Blob([tsv.join('\n')], { type: 'text/tsv' });
+        let url = URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = url;
+        a.download = 'table_export.tsv';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
 </script>
 </body>
 </html>
