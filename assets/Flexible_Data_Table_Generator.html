@@ -1460,7 +1460,7 @@ function generateTable() {
         // Compter les occurrences des valeurs et calculer le total
         for (let j = startCol; j <= endCol; j++) {
             const value = cells[j].innerText.trim();
-            if (value === 'c_maj' || value === 'c_min' || value === 'i_maj' || value === 'i_min' || value === 'missing_min' || value === 'missing_maj') {
+            if (value === 'i_maj' || value === 'i_min' ||  value === 'missing_min' || value === 'missing_maj') {
                 workerData[workerid][headers[j]] += 1;
                 workerData[workerid]["Total"] += 1;
                 grandTotal[headers[j]] += 1;
