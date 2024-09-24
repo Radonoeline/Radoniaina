@@ -633,11 +633,6 @@ function processData(data) {
 }
 
 
-
-		
-		
-
-
 	//CALCUL CONSENSUS PAR WORKER ID DETAILLES	
 	function calculateConsensusWorker() {
     const resultTable = document.getElementById('resultTable');
@@ -873,8 +868,6 @@ function processData(data) {
     tbody.appendChild(footerRow);
     table.appendChild(thead);
     table.appendChild(tbody);
-    //SCROOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOLLLLLLLLLLLLLLLLLLL
-	var table_1=document.getElementById("accuracyWorkerID");
 	
 }
 
@@ -1211,12 +1204,6 @@ document.head.appendChild(style);
 	
 }
 
-
-
-
-
-
-// FONCTION POUR COPIER LES RESULTATS A CHANGER PROCHAINEMENT
 // Fonction pour copier le contenu d'une table dans le presse-papiers
 async function copyTableToClipboard(table) {
     if (!table) {
@@ -1383,7 +1370,7 @@ document.getElementById('extract_data').onclick = function() {
     row3.insertCell(5).innerText = attributeCounts.incorrect_minority;
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////////
+
 //FONCTION POUR SUMMARY ET AGREEMENT
 function executeBoth() {
     agreement();
@@ -1508,16 +1495,6 @@ function generateTable() {
     });
 }
 
-
-
-
-
-
-
-
-
-
-
 // Fonction pour masquer toutes les tables et afficher seulement celle spécifiée
 function showTable(tableId) {
     // Masquer toutes les tables
@@ -1588,7 +1565,6 @@ function showTablePair(tableId1, tableId2) {
 }
 
 
-
 //EXPORT BIG TABLE TO TSV FILE
 document.getElementById('exportButton').addEventListener('click', function() {
         let table = document.getElementById('resultTable');
@@ -1610,12 +1586,7 @@ document.getElementById('exportButton').addEventListener('click', function() {
         URL.revokeObjectURL(url);
     });
 	
-	
-	
-	
-	
-	
-	
+		
 // Fonction pour créer la liste unique des hitid avec cases à cocher
 function createHitidCheckboxes() {
     // Récupérer la table resultTable (celle qui a déjà été créée)
@@ -1691,9 +1662,6 @@ function createHitidCheckboxes() {
 		});
 	});
 }
-
-
-
 
 
 // Fonction pour mettre à jour le tableau récapitulatif des hitid cochés
@@ -1842,9 +1810,6 @@ function updateHitidSummary() {
     // Ajouter le tableau au DOM
     tableauFiltreHitid.appendChild(table);
 }
-
-
-
 
 </script>
 </body>
