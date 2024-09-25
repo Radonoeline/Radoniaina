@@ -108,7 +108,7 @@
 <div class="container">
     <div id="checkboxContainer"></div>
     <div id="tablesContainer">
-        <div id="tableau_filtre_hitid"></div>
+       
         <table id="CRJ_Table_Filtered">
             <thead>
                 <tr>
@@ -123,6 +123,30 @@
             <tbody>
             </tbody>
         </table>
+		<div id="tableau_filtre_hitid"></div>
+		<table id="consensus_attribut_filtered">
+			<caption>ATTRIBUTS CONSENSUS FILTRÉS</caption>
+			<thead>
+				<tr>
+					<th>Attributs</th>
+					<th>Correct Majority</th>
+					<th>Taux %</th>
+					<th>Correct Minority</th>
+					<th>Taux %</th>
+					<th>Incorrect Majority</th>
+					<th>Taux %</th>
+					<th>Incorrect Minority</th>
+					<th>Taux %</th>
+					<th>Total</th>
+					<th>Consensus Correctness (%)</th>
+					<th>Attribute Error Rate (%)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<!-- Les lignes de données seront ajoutées ici par le script JavaScript -->
+			</tbody>
+		</table>
+
     </div>
 </div>
 <table id="resultTable"></table>
@@ -359,204 +383,17 @@
 
 
 			// Afficher la notification lorsque le traitement est terminé
-            const notification = document.getElementById('notification');
-            notification.textContent = 'Le traitement des données est terminé.';
-            notification.style.display = 'block'; // Afficher la notification
-			
+			const notification = document.getElementById('notification');
+			notification.textContent = 'Le traitement des données est terminé.';
+			notification.style.display = 'block'; // Afficher la notification
+
+			// Masquer la notification après 3 secondes (3000 millisecondes)
+			setTimeout(() => {
+				notification.style.display = 'none';
+			}, 3000);
+
 			// Appeler la fonction pour créer les cases à cocher des hitid
 			createHitidCheckboxes();
-			
-
-
-        }
-    });
-}
-
-
-
-
-
-
-
-
-
-
-
-		
-		
-		// PROCESS DATA MONTHLY REPORTING ITO
-function processData(data) {
-    Papa.parse(data, {
-        header: true,
-        delimiter: '\t',
-        skipEmptyLines: true,
-        preview: 500000,
-        complete: function (results) {
-            const parsedData = results.data;
-            const necessaryHeaders = ['hitid', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
-            console.log(results.data);
-            console.log(results.errors);
-
-            const headersFromData = results.meta.fields.map(header => header.trim().toLowerCase());
-            const normalizedNecessaryHeaders = necessaryHeaders.map(header => header.trim().toLowerCase());
-            const headersPresent = normalizedNecessaryHeaders.every(header => headersFromData.includes(header));
-
-            if (!headersPresent) {
-                console.error('Headers found:', headersFromData);
-                console.error('Expected headers:', normalizedNecessaryHeaders);
-                alert('Les entêtes nécessaires ne sont pas toutes présentes.');
-                return;
-            }
-
-            const invalidJson = parsedData.some(row => {
-                try {
-                    JSON.parse(row.assin_json);
-                    JSON.parse(row.assin_juge_json);
-                    return false;
-                } catch {
-                    return true;
-                }
-            });
-
-            if (invalidJson) {
-                alert('Certaines données JSON sont invalides.');
-                return;
-            }
-
-            const resultTable = document.getElementById('resultTable');
-            resultTable.innerHTML = '';
-
-            const caption = resultTable.createCaption();
-            caption.textContent = 'ANALYSE GLOBAL DES RESULTATS VENANT DE LOOKERS STUDIO';
-
-            const headers = necessaryHeaders.concat(['smarter', 'juge']);
-            const headerRow = resultTable.insertRow();
-
-            headers.forEach(header => {
-                const cell = document.createElement('th');
-                cell.textContent = header;
-                headerRow.appendChild(cell);
-            });
-
-            const uniqueKeys = new Set();
-            parsedData.forEach(row => {
-                const assinJson = JSON.parse(row.assin_json);
-                const jugeJson = JSON.parse(row.assin_juge_json);
-
-                Object.keys(assinJson).forEach(key => {
-                    if (key !== 'purchase_availability' && key !== 'link_clicked' && key !== 'on') uniqueKeys.add(key);
-                });
-                Object.keys(jugeJson).forEach(key => {
-                    if (key !== 'purchase_availability' && key !== 'link_clicked' && key !== 'on') uniqueKeys.add(key);
-                });
-
-                row.smarter = Object.keys(assinJson)
-                    .filter(key => assinJson[key] && key !== 'purchase_availability' && key !== 'link_clicked' && key !== 'on')
-                    .join(', ');
-                row.juge = Object.keys(jugeJson)
-                    .filter(key => jugeJson[key] && key !== 'purchase_availability' && key !== 'link_clicked' && key !== 'on')
-                    .join(', ');
-            });
-
-            uniqueKeys.forEach(key => {
-                const cell = document.createElement('th');
-                cell.textContent = key;
-                headerRow.appendChild(cell);
-            });
-
-            const asinJudgmentHeader = document.createElement('th');
-            asinJudgmentHeader.textContent = 'Jugement ASIN';
-            headerRow.appendChild(asinJudgmentHeader);
-
-            const assignmentJudgmentHeader = document.createElement('th');
-            assignmentJudgmentHeader.textContent = 'Jugement Assignement';
-            headerRow.appendChild(assignmentJudgmentHeader);
-
-            parsedData.forEach(row => {
-                const rowElement = resultTable.insertRow();
-                headers.forEach(header => {
-                    const cell = rowElement.insertCell();
-                    cell.textContent = row[header] || '';
-                });
-
-                uniqueKeys.forEach(key => {
-                    const cell = rowElement.insertCell();
-                    cell.textContent = '';
-                });
-
-                const asinJudgmentCell = rowElement.insertCell();
-                asinJudgmentCell.textContent = '';
-
-                const assignmentJudgmentCell = rowElement.insertCell();
-                assignmentJudgmentCell.textContent = ''; // Cette cellule restera vide
-            });
-
-            const groupedByKey = parsedData.reduce((acc, row, index) => {
-                if (!acc[row.key]) acc[row.key] = [];
-                row.index = index;
-                acc[row.key].push(row);
-                return acc;
-            }, {});
-
-            Object.keys(groupedByKey).forEach(key => {
-                const group = groupedByKey[key];
-                const totalRows = group.length;
-
-                const smarterCounts = {};
-                const jugeCounts = {};
-
-                group.forEach(row => {
-                    row.smarter.split(', ').forEach(attr => {
-                        if (attr) smarterCounts[attr] = (smarterCounts[attr] || 0) + 1;
-                    });
-                    row.juge.split(', ').forEach(attr => {
-                        if (attr) jugeCounts[attr] = (jugeCounts[attr] || 0) + 1;
-                    });
-                });
-
-                group.forEach(row => {
-                    const rowIndex = row.index;
-                    const rowElement = resultTable.rows[rowIndex + 1];
-
-                    uniqueKeys.forEach(attr => {
-                        let cellValue = '';
-                        const smarterHasAttr = row.smarter.includes(attr);
-                        const jugeHasAttr = row.juge.includes(attr);
-                        const countSmarterCorrect = group.filter(r => r.smarter.includes(attr) && r.juge.includes(attr)).length;
-                        const countSmarterIncorrect = group.filter(r => r.smarter.includes(attr) && !r.juge.includes(attr)).length;
-                        const countMissing = group.filter(r => !r.smarter.includes(attr) && r.juge.includes(attr)).length;
-
-                        if (smarterHasAttr && jugeHasAttr) {
-                            cellValue = countSmarterCorrect >= totalRows / 2 ? 'c_maj' : 'c_min';
-                        } else if (smarterHasAttr && !jugeHasAttr) {
-                            cellValue = countSmarterIncorrect >= totalRows / 2 ? 'i_maj' : 'i_min';
-                        } else if (!smarterHasAttr && jugeHasAttr) {
-                            cellValue = countMissing >= totalRows / 2 ? 'missing_maj' : 'missing_min';
-                        }
-
-                        const cell = rowElement.cells[Array.from(headerRow.cells).findIndex(c => c.textContent === attr)];
-                        if (cell) {
-                            cell.textContent = cellValue;
-                        }
-                    });
-
-                    const asinJudgmentIndex = Array.from(headerRow.cells).findIndex(c => c.textContent === 'Jugement ASIN');
-                    const asinJudgmentCell = rowElement.cells[asinJudgmentIndex];
-                    const cellValues = Array.from(rowElement.cells).slice(headers.length, headers.length + uniqueKeys.size).map(cell => cell.textContent);
-
-                    if (cellValues.includes('i_min') || cellValues.includes('i_maj') || cellValues.includes('missing_min') || cellValues.includes('missing_maj')) {
-                        asinJudgmentCell.textContent = 'ko';
-                    } else if ((cellValues.includes('c_min') || cellValues.includes('c_maj')) &&
-                        !cellValues.includes('i_min') && !cellValues.includes('i_maj') &&
-                        !cellValues.includes('missing_min') && !cellValues.includes('missing_maj')) {
-                        asinJudgmentCell.textContent = 'ok';
-                    }
-                });
-            });
-			
-			
-			// Show the notification when processing is complete
-            showNotification('Traitement terminé ! La table "resultTable" a été créée.');
         }
     });
 }
@@ -851,12 +688,18 @@ function createHitidCheckboxes() {
         hitidDiv.appendChild(label);
         checkboxContainer.appendChild(hitidDiv);
     });
-	// Attacher un écouteur d'événements à chaque case à cocher (après leur création)
-	document.querySelectorAll('#checkboxContainer input[type="checkbox"]:not(#selectAll)').forEach(checkbox => {
+	// Attacher un écouteur d'événements à toutes les cases à cocher, y compris "Select All/Deselect All"
+	document.querySelectorAll('#checkboxContainer input[type="checkbox"]').forEach(checkbox => {
 		checkbox.addEventListener('change', function() {
-			updateHitidSummary(); // Votre fonction existante
+			if (this.id === 'selectAll') {
+				const checkboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+				checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+			}
+			updateHitidSummary();
 			calculateFilteredHITs();
-			//extractDataForCheckedHitIds(); // Votre nouvelle fonction
+			calculateFilteredConsensus() ;
+			//IZAY FONCTION VAOVAO ALATSAKA ETO
+			//extractDataForCheckedHitIds();
 		});
 	});
 }
@@ -871,6 +714,11 @@ function updateHitidSummary() {
     const selectedHitids = Array.from(checkboxes)
         .filter(checkbox => checkbox.checked)
         .map(checkbox => checkbox.id);
+
+    // Afficher le nombre de hitid cochés dans l'élément <h2>
+    const selectedHitidCount = selectedHitids.length;
+    const header = document.querySelector('h2'); // Supposant que <h2> est unique dans votre HTML
+    header.textContent = `Fichier TSV Journalier (Details ASIN) - ${selectedHitidCount} HitID sélectionné(s)`;
 
     // Vider le tableau récapitulatif précédent
     const tableauFiltreHitid = document.getElementById('tableau_filtre_hitid');
@@ -938,7 +786,7 @@ function updateHitidSummary() {
 
     // Construire le tableau HTML récapitulatif
     const table = document.createElement('table');
-    const header = `
+    const headerRow = `
         <tr>
             <th>workerid</th>
             <th>Total HitID Piqués</th>
@@ -949,7 +797,7 @@ function updateHitidSummary() {
             <th>Accuracy (%)</th>
             <th>Error Rate (%)</th>
         </tr>`;
-    table.innerHTML = header;
+    table.innerHTML = headerRow;
 
     let totalHitid = 0;
     let totalAssignment = 0;
@@ -1013,6 +861,7 @@ function updateHitidSummary() {
 
 
 
+
 // Fonction pour récupérer les hitids cochés
 function getCheckedHitIds() {
     const checkedHitIds = [];
@@ -1059,7 +908,6 @@ function calculateFilteredHITs() {
 
     // Récupère les HITs cochés
     var checkedHitIds = getCheckedHitIds(); 
-
     var totalControlled = 0, totalKO = 0;
     var correctMajority = 0, correctMinority = 0, incorrectMajority = 0, incorrectMinority = 0;
     var totalAttributs = 0; // Total des attributs pour les calculs de pourcentages
@@ -1138,7 +986,140 @@ function calculateFilteredHITs() {
 }
 
 
+//FONCTION POUR CALCULER ET CREER LA TABLEAU DE CONSENSUS FILTRER
+// Fonction pour calculer et créer le tableau de consensus filtré
+function calculateFilteredConsensus() {
+    const resultTable = document.getElementById('resultTable');
+    const attributes = {};
 
+    // Récupérer les hitids cochés
+    const checkedHitIds = getCheckedHitIds();
+
+    // Filtrer les lignes en fonction des hitids cochés
+    const filteredRows = Array.from(resultTable.rows).filter(row => {
+        const hitidCell = row.cells[0]; // Supposons que la première colonne contient les hitids
+        return checkedHitIds.includes(hitidCell.textContent.trim());
+    });
+
+    // Trouver les en-têtes de colonnes
+    const headers = Array.from(resultTable.querySelectorAll('th')).map(th => th.innerText.trim());
+
+    // Trouver l'index de la colonne 'juge' et des colonnes d'attributs
+    const jugeIndex = headers.indexOf('juge');
+    const attributeColumns = headers.slice(jugeIndex + 1).filter(col => col !== 'Jugement ASIN' && col !== 'Jugement Assignement' && col !== 'Jugement HitId');
+
+    if (jugeIndex === -1) {
+        console.error('Colonne "juge" non trouvée');
+        return;
+    }
+
+    // Initialiser les attributs pour les colonnes
+    attributeColumns.forEach(attr => {
+        attributes[attr] = {
+            correctMajority: 0,
+            correctMinority: 0,
+            incorrectMajority: 0,
+            incorrectMinority: 0
+        };
+    });
+
+    // Collecter les données des lignes filtrées
+    filteredRows.forEach(row => {
+        const cellValues = row.cells;
+
+        attributeColumns.forEach((attr, index) => {
+            const cellIndex = jugeIndex + 1 + index;
+            if (cellIndex < cellValues.length) {
+                const value = cellValues[cellIndex].textContent.trim();
+
+                if (value === 'c_maj') {
+                    attributes[attr].correctMajority++;
+                } else if (value === 'c_min') {
+                    attributes[attr].correctMinority++;
+                } else if (value === 'i_maj' || value === 'missing_maj') {
+                    attributes[attr].incorrectMajority++;
+                } else if (value === 'i_min' || value === 'missing_min') {
+                    attributes[attr].incorrectMinority++;
+                }
+            }
+        });
+    });
+
+    // Calculer les totaux globaux
+    let grandTotalCorrectMajority = 0;
+    let grandTotalCorrectMinority = 0;
+    let grandTotalIncorrectMajority = 0;
+    let grandTotalIncorrectMinority = 0;
+
+    Object.values(attributes).forEach(data => {
+        grandTotalCorrectMajority += data.correctMajority;
+        grandTotalCorrectMinority += data.correctMinority;
+        grandTotalIncorrectMajority += data.incorrectMajority;
+        grandTotalIncorrectMinority += data.incorrectMinority;
+    });
+
+    // Calculer le grand total général
+    const grandTotal = grandTotalCorrectMajority + grandTotalCorrectMinority + grandTotalIncorrectMajority + grandTotalIncorrectMinority;
+
+    // Référencer le tableau existant
+    const detailedTable = document.getElementById('consensus_attribut_filtered').querySelector('tbody');
+
+    // Réinitialiser le contenu du tableau
+    detailedTable.innerHTML = '';
+
+    // Ajouter les lignes de données
+    Object.keys(attributes).forEach(attr => {
+        const data = attributes[attr];
+        const total = data.correctMajority + data.correctMinority + data.incorrectMajority + data.incorrectMinority;
+
+        const row = detailedTable.insertRow();
+        row.insertCell().textContent = attr;
+        row.insertCell().textContent = data.correctMajority;
+        row.insertCell().textContent = grandTotal > 0 ? (data.correctMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = data.correctMinority;
+        row.insertCell().textContent = grandTotal > 0 ? (data.correctMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = data.incorrectMajority;
+        row.insertCell().textContent = grandTotal > 0 ? (data.incorrectMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = data.incorrectMinority;
+        row.insertCell().textContent = grandTotal > 0 ? (data.incorrectMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+
+        row.insertCell().textContent = total;
+
+        const consensusCorrectness = (grandTotalCorrectMajority + grandTotalCorrectMinority > 0)
+            ? ((data.correctMajority + data.correctMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%';
+        row.insertCell().textContent = consensusCorrectness;
+
+        const attributeErrorRate = (grandTotalIncorrectMajority + grandTotalIncorrectMinority > 0)
+            ? ((data.incorrectMajority + data.incorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
+            : '0,00%';
+        row.insertCell().textContent = attributeErrorRate;
+    });
+
+    // Ajouter la ligne totale
+    const totalRow = detailedTable.insertRow();
+    totalRow.insertCell().textContent = 'Total';
+    totalRow.insertCell().textContent = grandTotalCorrectMajority;
+    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalCorrectMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+    totalRow.insertCell().textContent = grandTotalCorrectMinority;
+    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalCorrectMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+    totalRow.insertCell().textContent = grandTotalIncorrectMajority;
+    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalIncorrectMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+    totalRow.insertCell().textContent = grandTotalIncorrectMinority;
+    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalIncorrectMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+
+    totalRow.insertCell().textContent = grandTotal;
+
+    const totalConsensusCorrectness = (grandTotalCorrectMajority + grandTotalCorrectMinority > 0)
+        ? ((grandTotalCorrectMajority + grandTotalCorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
+        : '0,00%';
+    totalRow.insertCell().textContent = totalConsensusCorrectness;
+
+    const totalAttributeErrorRate = (grandTotalIncorrectMajority + grandTotalIncorrectMinority > 0)
+        ? ((grandTotalIncorrectMajority + grandTotalIncorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
+        : '0,00%';
+    totalRow.insertCell().textContent = totalAttributeErrorRate;
+}
 
 </script>
 </body>
