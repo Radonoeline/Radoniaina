@@ -29,6 +29,45 @@
 <button onclick="process_workerid_accuracy()">Worker ID Accuracy</button>
 
 
+
+<table id="SummaryTable">
+    <caption>SUMMARY TABLE</caption> <!-- Légende ajoutée ici -->
+    <thead>
+        <tr>
+            <th>Total agreement in ... processed ASINs</th>
+            <th>Count</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Correct Majority</td>
+            <td id="correctMajorityCount"></td> <!-- Valeur laissée vide -->
+            <td id="correctMajorityPercentage"></td> <!-- Valeur laissée vide -->
+        </tr>
+        <tr>
+            <td>Correct Minority</td>
+            <td id="correctMinorityCount"></td> <!-- Valeur laissée vide -->
+            <td id="correctMinorityPercentage"></td> <!-- Valeur laissée vide -->
+        </tr>
+        <tr>
+            <td>Incorrect Majority</td>
+            <td id="incorrectMajorityCount"></td> <!-- Valeur laissée vide -->
+            <td id="incorrectMajorityPercentage"></td> <!-- Valeur laissée vide -->
+        </tr>
+        <tr>
+            <td>Incorrect Minority</td>
+            <td id="incorrectMinorityCount"></td> <!-- Valeur laissée vide -->
+            <td id="incorrectMinorityPercentage"></td> <!-- Valeur laissée vide -->
+        </tr>
+        <tr style="font-weight: bold;">
+            <td>Total:</td>
+            <td id="totalCount"></td> <!-- Valeur laissée vide -->
+            <td></td> <!-- Colonne pourcentage vide -->
+        </tr>
+    </tbody>
+</table>
+
 <!-- Tableau où les résultats seront affichés -->
 <table id="table_attribut_consensus">
     <thead>
@@ -65,6 +104,38 @@
     </tbody>
 </table>
 
+
+<table id="TrendsTable">
+    <caption>TRENDS TABLE</caption> <!-- Légende ajoutée ici -->
+    <tbody>
+        <tr>
+            <td>Unique HITIDs:</td>
+            <td></td> <!-- Valeur laissée vide -->
+        </tr>
+        <tr>
+            <td>WorkerIDs:</td>
+            <td></td> <!-- Valeur à remplir dynamiquement -->
+        </tr>
+        <tr>
+            <td>Total ASIN Analyzed:</td>
+            <td></td> <!-- Valeur à remplir dynamiquement -->
+        </tr>
+        <tr>
+            <td>Correct ASINs:</td>
+            <td></td> <!-- Valeur à remplir dynamiquement -->
+        </tr>
+        <tr>
+            <td>Incorrect ASINs:</td>
+            <td></td> <!-- Valeur à remplir dynamiquement -->
+        </tr>
+        <tr>
+            <td>Global Accuracy:</td>
+            <td></td> <!-- Valeur à remplir dynamiquement -->
+        </tr>
+    </tbody>
+</table>
+
+
 <table id="table_workerid_accuracy">
     <caption></caption>
     <thead>
@@ -82,128 +153,145 @@
     </tbody>
 </table>
 
+
+
 <script>
     function process_attributs_consensus() {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.tsv';
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.tsv';
 
-        fileInput.addEventListener('change', function(event) {
-            const file = event.target.files[0];
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
 
-            if (!file) {
-                alert('Veuillez sélectionner un fichier.');
-                return;
-            }
+        if (!file) {
+            alert('Veuillez sélectionner un fichier.');
+            return;
+        }
 
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                delimiter: "\t",
-                complete: function(results) {
-                    const data = results.data;
-                    const aggregatedData = {};
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            delimiter: "\t",
+            complete: function(results) {
+                const data = results.data;
+                const aggregatedData = {};
 
-                    data.forEach(row => {
-                        const attribute = row['Attributs'];
-                        const correctMajority = parseInt(row['Correct Majority']) || 0;
-                        const correctMinority = parseInt(row['Correct Minority']) || 0;
-                        const incorrectMajority = parseInt(row['Incorrect Majority']) || 0;
-                        const incorrectMinority = parseInt(row['Incorrect Minority']) || 0;
+                data.forEach(row => {
+                    const attribute = row['Attributs'];
+                    const correctMajority = parseInt(row['Correct Majority']) || 0;
+                    const correctMinority = parseInt(row['Correct Minority']) || 0;
+                    const incorrectMajority = parseInt(row['Incorrect Majority']) || 0;
+                    const incorrectMinority = parseInt(row['Incorrect Minority']) || 0;
 
-                        if (!aggregatedData[attribute]) {
-                            aggregatedData[attribute] = {
-                                correctMajority: 0,
-                                correctMinority: 0,
-                                incorrectMajority: 0,
-                                incorrectMinority: 0,
-                                total: 0
-                            };
-                        }
-
-                        aggregatedData[attribute].correctMajority += correctMajority;
-                        aggregatedData[attribute].correctMinority += correctMinority;
-                        aggregatedData[attribute].incorrectMajority += incorrectMajority;
-                        aggregatedData[attribute].incorrectMinority += incorrectMinority;
-                        aggregatedData[attribute].total += correctMajority + correctMinority + incorrectMajority + incorrectMinority;
-                    });
-
-                    let totalOverall = 0;
-                    let correctMajorityOverall = 0;
-                    let correctMinorityOverall = 0;
-                    let incorrectMajorityOverall = 0;
-                    let incorrectMinorityOverall = 0;
-                    let correctOverall = 0;
-                    let incorrectOverall = 0;
-
-                    for (const attribute in aggregatedData) {
-                        totalOverall += aggregatedData[attribute].total;
-                        correctMajorityOverall += aggregatedData[attribute].correctMajority;
-                        correctMinorityOverall += aggregatedData[attribute].correctMinority;
-                        incorrectMajorityOverall += aggregatedData[attribute].incorrectMajority;
-                        incorrectMinorityOverall += aggregatedData[attribute].incorrectMinority;
-                        correctOverall += aggregatedData[attribute].correctMajority + aggregatedData[attribute].correctMinority;
-                        incorrectOverall += aggregatedData[attribute].incorrectMajority + aggregatedData[attribute].incorrectMinority;
+                    if (!aggregatedData[attribute]) {
+                        aggregatedData[attribute] = {
+                            correctMajority: 0,
+                            correctMinority: 0,
+                            incorrectMajority: 0,
+                            incorrectMinority: 0,
+                            total: 0
+                        };
                     }
 
-                    const tbody = document.querySelector('#table_attribut_consensus tbody');
-                    tbody.innerHTML = '';
+                    aggregatedData[attribute].correctMajority += correctMajority;
+                    aggregatedData[attribute].correctMinority += correctMinority;
+                    aggregatedData[attribute].incorrectMajority += incorrectMajority;
+                    aggregatedData[attribute].incorrectMinority += incorrectMinority;
+                    aggregatedData[attribute].total += correctMajority + correctMinority + incorrectMajority + incorrectMinority;
+                });
 
-                    // Création de la légende du tableau
-                    const table_attribut_consensus = document.getElementById('table_attribut_consensus');
-                    const caption = table_attribut_consensus.createCaption();
-                    caption.textContent = 'CONSENSUS ATTRIBUTS';
+                let totalOverall = 0;
+                let correctMajorityOverall = 0;
+                let correctMinorityOverall = 0;
+                let incorrectMajorityOverall = 0;
+                let incorrectMinorityOverall = 0;
+                let correctOverall = 0;
+                let incorrectOverall = 0;
 
-                    for (const attribute in aggregatedData) {
-                        const totals = aggregatedData[attribute];
-                        const total = totals.total;
+                for (const attribute in aggregatedData) {
+                    totalOverall += aggregatedData[attribute].total;
+                    correctMajorityOverall += aggregatedData[attribute].correctMajority;
+                    correctMinorityOverall += aggregatedData[attribute].correctMinority;
+                    incorrectMajorityOverall += aggregatedData[attribute].incorrectMajority;
+                    incorrectMinorityOverall += aggregatedData[attribute].incorrectMinority;
+                    correctOverall += aggregatedData[attribute].correctMajority + aggregatedData[attribute].correctMinority;
+                    incorrectOverall += aggregatedData[attribute].incorrectMajority + aggregatedData[attribute].incorrectMinority;
+                }
 
-                        if (total === 0) continue;
+                const tbody = document.querySelector('#table_attribut_consensus tbody');
+                tbody.innerHTML = '';
 
-                        const correctTotal = totals.correctMajority + totals.correctMinority;
-                        const incorrectTotal = totals.incorrectMajority + totals.incorrectMinority;
+                // Création de la légende du tableau
+                const table_attribut_consensus = document.getElementById('table_attribut_consensus');
+                const caption = table_attribut_consensus.createCaption();
+                caption.textContent = 'CONSENSUS ATTRIBUTS';
 
-                        const consensusCorrectness = ((correctTotal / totalOverall) * 100).toFixed(2).replace('.', ',');
-                        const attributeErrorRate = ((incorrectTotal / totalOverall) * 100).toFixed(2).replace('.', ',');
+                for (const attribute in aggregatedData) {
+                    const totals = aggregatedData[attribute];
+                    const total = totals.total;
 
-                        const row = `
-                            <tr>
-                                <td>${attribute}</td>
-                                <td>${totals.correctMajority}</td>
-                                <td>${totals.correctMinority}</td>
-                                <td>${totals.incorrectMajority}</td>
-                                <td>${totals.incorrectMinority}</td>
-                                <td>${total}</td>
-                                <td>${consensusCorrectness}%</td>
-                                <td>${attributeErrorRate}%</td>
-                            </tr>
-                        `;
-                        tbody.innerHTML += row;
-                    }
+                    if (total === 0) continue;
 
-                    const totalConsensusCorrectness = ((correctOverall / totalOverall) * 100).toFixed(2).replace('.', ',');
-                    const totalAttributeErrorRate = ((incorrectOverall / totalOverall) * 100).toFixed(2).replace('.', ',');
+                    const correctTotal = totals.correctMajority + totals.correctMinority;
+                    const incorrectTotal = totals.incorrectMajority + totals.incorrectMinority;
 
-                    const totalRow = `
-                        <tr style="font-weight: bold;">
-                            <td>Totale</td>
-                            <td>${correctMajorityOverall}</td>
-                            <td>${correctMinorityOverall}</td>
-                            <td>${incorrectMajorityOverall}</td>
-                            <td>${incorrectMinorityOverall}</td>
-                            <td>${totalOverall}</td>
-                            <td>${totalConsensusCorrectness}%</td>
-                            <td>${totalAttributeErrorRate}%</td>
+                    const consensusCorrectness = ((correctTotal / totalOverall) * 100).toFixed(2).replace('.', ',');
+                    const attributeErrorRate = ((incorrectTotal / totalOverall) * 100).toFixed(2).replace('.', ',');
+
+                    const row = `
+                        <tr>
+                            <td>${attribute}</td>
+                            <td>${totals.correctMajority}</td>
+                            <td>${totals.correctMinority}</td>
+                            <td>${totals.incorrectMajority}</td>
+                            <td>${totals.incorrectMinority}</td>
+                            <td>${total}</td>
+                            <td>${consensusCorrectness}%</td>
+                            <td>${attributeErrorRate}%</td>
                         </tr>
                     `;
-                    tbody.innerHTML += totalRow;
+                    tbody.innerHTML += row;
                 }
-            });
-        });
 
-        // Simule un clic sur l'élément fileInput pour ouvrir la boîte de dialogue
-        fileInput.click();
-    }
+                const totalConsensusCorrectness = ((correctOverall / totalOverall) * 100).toFixed(2).replace('.', ',');
+                const totalAttributeErrorRate = ((incorrectOverall / totalOverall) * 100).toFixed(2).replace('.', ',');
+
+                const totalRow = `
+                    <tr style="font-weight: bold;">
+                        <td>Totale</td>
+                        <td>${correctMajorityOverall}</td>
+                        <td>${correctMinorityOverall}</td>
+                        <td>${incorrectMajorityOverall}</td>
+                        <td>${incorrectMinorityOverall}</td>
+                        <td>${totalOverall}</td>
+                        <td>${totalConsensusCorrectness}%</td>
+                        <td>${totalAttributeErrorRate}%</td>
+                    </tr>
+                `;
+                tbody.innerHTML += totalRow;
+
+                // Remplissage de la SummaryTable
+                const totalCount = correctMajorityOverall + correctMinorityOverall + incorrectMajorityOverall + incorrectMinorityOverall;
+                document.getElementById('correctMajorityCount').textContent = correctMajorityOverall; // Count
+                document.getElementById('correctMinorityCount').textContent = correctMinorityOverall; // Count
+                document.getElementById('incorrectMajorityCount').textContent = incorrectMajorityOverall; // Count
+                document.getElementById('incorrectMinorityCount').textContent = incorrectMinorityOverall; // Count
+                document.getElementById('totalCount').textContent = totalCount; // Total Count
+
+                // Calcul et affichage des pourcentages
+                document.getElementById('correctMajorityPercentage').textContent = ((correctMajorityOverall / totalCount) * 100).toFixed(2).replace('.', ',') + '%';
+                document.getElementById('correctMinorityPercentage').textContent = ((correctMinorityOverall / totalCount) * 100).toFixed(2).replace('.', ',') + '%';
+                document.getElementById('incorrectMajorityPercentage').textContent = ((incorrectMajorityOverall / totalCount) * 100).toFixed(2).replace('.', ',') + '%';
+                document.getElementById('incorrectMinorityPercentage').textContent = ((incorrectMinorityOverall / totalCount) * 100).toFixed(2).replace('.', ',') + '%';
+            }
+        });
+    });
+
+    // Simule un clic sur l'élément fileInput pour ouvrir la boîte de dialogue
+    fileInput.click();
+}
+
 	
 	//generate consensus worker id
 	
@@ -432,9 +520,23 @@ fileInput.addEventListener('change', function(event) {
                 </tr>
             `;
             tbody.innerHTML += totalRow;
+
+            // Remplissage de TrendsTable
+            const trendsTable = document.getElementById('TrendsTable');
+            const trendsBody = trendsTable.querySelector('tbody');
+            
+            // Remplissage des valeurs dans la deuxième colonne
+            trendsBody.rows[1].cells[1].textContent = Object.keys(aggregatedData).length; // WorkerIDs
+            trendsBody.rows[2].cells[1].textContent = totalOverall; // Total ASIN Analyzed
+            trendsBody.rows[3].cells[1].textContent = correctOverall; // Correct ASINs
+            trendsBody.rows[4].cells[1].textContent = incorrectOverall; // Incorrect ASINs
+            trendsBody.rows[5].cells[1].textContent = `${totalConsensusCorrectness}%`; // Global Accuracy
         }
     });
 });
+
+
+
 
 // Fonction déclenchée par le bouton
 function process_workerid_accuracy() {
