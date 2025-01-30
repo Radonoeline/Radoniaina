@@ -401,7 +401,6 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
 });
 
 
-// PARTAGE DES HITID ET COLORISATION
 document.getElementById("shareButton").addEventListener("click", function () {
     const consensusTable = document.getElementById("consensusTable");
     if (!consensusTable || consensusTable.rows.length < 2) {
@@ -420,18 +419,25 @@ document.getElementById("shareButton").addEventListener("click", function () {
     `;
 
     const rows = Array.from(consensusTable.rows).slice(1);
-    const hitData = rows.map(row => ({
-        hitId: row.cells[1].textContent.trim(),
-        moyenne: parseFloat(row.cells[row.cells.length - 1].textContent.trim().replace("%", ""))
-    }));
+    const hitData = rows.map(row => {
+        const moyenneCell = row.cells[row.cells.length - 1].textContent.trim();
+        const moyenne = parseFloat(moyenneCell.replace("%", ""));
+        
+        return {
+            hitId: row.cells[1].textContent.trim(),
+            moyenne: isNaN(moyenne) ? null : moyenne // Remplace les valeurs invalides par null
+        };
+    }).filter(hit => hit.moyenne !== null); // Filtrer les lignes avec une moyenne invalide
 
     if (hitData.length === 0) {
-        alert("Aucune donnée disponible pour le partage.");
+        alert("Aucune donnée valide disponible pour le partage.");
         return;
     }
 
+    // Trier les HITs par ordre décroissant de moyenne
     hitData.sort((a, b) => b.moyenne - a.moyenne);
 
+    // Création de l'en-tête du tableau
     const qasHeader = document.getElementById("qasHeader");
     for (let i = 1; i <= qasCount; i++) {
         const th = document.createElement("th");
@@ -441,6 +447,7 @@ document.getElementById("shareButton").addEventListener("click", function () {
 
     const partageBody = document.getElementById("partageBody");
 
+    // Cas où qasCount = 1
     if (qasCount === 1) {
         hitData.forEach(hit => {
             const row = document.createElement("tr");
@@ -460,6 +467,7 @@ document.getElementById("shareButton").addEventListener("click", function () {
         return;
     }
 
+    // Répartition des HITs
     let qasDistribution = Array.from({ length: qasCount }, () => []);
     let qasSums = new Array(qasCount).fill(0);
 
@@ -469,8 +477,10 @@ document.getElementById("shareButton").addEventListener("click", function () {
         qasSums[minIndex] += hit.moyenne;
     });
 
+    // Déterminer le nombre maximal de lignes
     const maxRows = Math.max(...qasDistribution.map(qas => qas.length));
 
+    // Construction du tableau de partage
     for (let i = 0; i < maxRows; i++) {
         const row = document.createElement("tr");
 
@@ -492,17 +502,22 @@ document.getElementById("shareButton").addEventListener("click", function () {
         partageBody.appendChild(row);
     }
 
+    // Ajout de la ligne des moyennes
     const moyenneRow = document.createElement("tr");
     for (let j = 0; j < qasCount; j++) {
         const moyenneCell = document.createElement("td");
-        const moy = qasDistribution[j].length > 0
-            ? (qasDistribution[j].reduce((sum, hit) => sum + hit.moyenne, 0) / qasDistribution[j].length).toFixed(2) + "%"
-            : "-";
-        moyenneCell.textContent = moy;
+        if (qasDistribution[j].length > 0) {
+            const totalMoyenne = qasDistribution[j].reduce((sum, hit) => sum + hit.moyenne, 0);
+            const moyenneFinale = (totalMoyenne / qasDistribution[j].length).toFixed(2) + "%";
+            moyenneCell.textContent = moyenneFinale;
+        } else {
+            moyenneCell.textContent = "0.00%";
+        }
         moyenneRow.appendChild(moyenneCell);
     }
     partageBody.appendChild(moyenneRow);
 });
+
 
 
 //COPY PARTAGE TABLE
