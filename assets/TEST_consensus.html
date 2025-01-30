@@ -206,7 +206,7 @@
     document.getElementById('processButton').addEventListener('click', () => {
     const fileInput = document.getElementById('fileInput');
     if (!fileInput.files.length) {
-        alert('Please select a TSV file.');
+        alert('Veuillez sélectionner un fichier TSV.');
         return;
     }
 
@@ -214,6 +214,7 @@
     Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
+        worker: true, // Utilisation de Web Workers pour les fichiers volumineux
         complete: (result) => {
             processTSV(result.data);
         },
@@ -222,55 +223,63 @@
 
 function processTSV(data) {
     const resultTableBody = document.querySelector('#resultTable tbody');
-    resultTableBody.innerHTML = ''; // Clear previous results
+    resultTableBody.innerHTML = ''; // Nettoyer les résultats précédents
+    const fragment = document.createDocumentFragment(); // Meilleure performance DOM
 
     data.forEach(row => {
-        const outputData = JSON.parse(row['Answer.output_data'] || '{}');
-        const asins = Array(10).fill('');
+        if (!row['Answer.output_data']) return; // Vérification avant JSON.parse
+        let outputData;
+        try {
+            outputData = JSON.parse(row['Answer.output_data']);
+        } catch (e) {
+            return; // Ignore les lignes avec JSON invalide
+        }
 
+        const asins = new Array(10).fill('');
         let index = 0;
-        for (const [asin, attributes] of Object.entries(outputData)) {
+        for (const asin in outputData) {
             if (index >= 10) break;
-            asins[index] = Object.keys(attributes).filter(key => attributes[key] === true).join(',');
+            asins[index] = Object.keys(outputData[asin])
+                .filter(key => outputData[asin][key] === true)
+                .join(',');
             index++;
         }
 
-        // Append row to result table (but keep the table hidden)
-        const newRow = `
-          <tr>
-            <td>${row['Source.name']}</td>
-            <td>${row['AssignmentId']}</td>
-            <td>${row['HITId']}</td>
-            <td>${row['WorkerId']}</td>
+        // Création de la ligne optimisée
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>${row['Source.name'] || ''}</td>
+            <td>${row['AssignmentId'] || ''}</td>
+            <td>${row['HITId'] || ''}</td>
+            <td>${row['WorkerId'] || ''}</td>
             ${asins.map(asin => `<td>${asin}</td>`).join('')}
-          </tr>
         `;
-        resultTableBody.innerHTML += newRow;
+        fragment.appendChild(newRow);
     });
 
-    // Afficher la notification
+    resultTableBody.appendChild(fragment); // Ajout optimisé au DOM
     showNotification("Table de Résultat Créée");
 }
 
-// Fonction pour afficher la notification pendant 3 secondes
 function showNotification(message) {
     const notification = document.createElement("div");
+    Object.assign(notification.style, {
+        position: "fixed",
+        top: "20px",
+        right: "20px",
+        backgroundColor: "green",
+        color: "white",
+        padding: "10px",
+        borderRadius: "5px",
+        fontWeight: "bold",
+        boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.2)"
+    });
     notification.textContent = message;
-    notification.style.position = "fixed";
-    notification.style.top = "20px";
-    notification.style.right = "20px";
-    notification.style.backgroundColor = "green";
-    notification.style.color = "white";
-    notification.style.padding = "10px";
-    notification.style.borderRadius = "5px";
-    notification.style.fontWeight = "bold";
-    notification.style.boxShadow = "0px 0px 10px rgba(0, 0, 0, 0.2)";
     document.body.appendChild(notification);
 
-    setTimeout(() => {
-        notification.remove();
-    }, 3000);
+    setTimeout(() => notification.remove(), 3000);
 }
+
 
 
     
