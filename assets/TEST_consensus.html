@@ -361,11 +361,12 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
           totalMajorityCount += count;
         }
       });
-
-      // Calcul du consensus pour cette colonne
-      const percentage = totalMajorityCount > 0
-        ? (totalMajorityCount / (uniqueAttributeCount * totalLines)) * 100
-        : 0;
+		//CORRECTIF POUR AKOHO TSY FOY
+		  const percentage = totalMajorityCount > 0
+	  ? (uniqueAttributeCount < 2
+		  ? (totalMajorityCount / (uniqueAttributeCount * totalLines)) * 100
+		  : (totalMajorityCount * 2 / (uniqueAttributeCount * totalLines)) * 100)
+	  : 0;
 
       totalPercentage += percentage;
       validColumnsCount++;
