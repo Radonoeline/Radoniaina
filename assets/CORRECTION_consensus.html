@@ -316,9 +316,6 @@ function showNotification(message) {
 
 
 
-    
-	
-
 
 // CALCUL CONSENSUS PERCENTAGE
 
@@ -353,12 +350,13 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
     const sourceName = rows.find(row => row.children[2].textContent === HITId).children[0].textContent;
     const consensusPercentages = [];
     let totalPercentage = 0;
-    let validColumnsCount = 0;
+    let validColumnsCount = 0; // Compte des colonnes valides (non vides)
 
     for (let i = 0; i < 10; i++) {
       const attributeCounts = {};
-      
-      // Étape 1 : Compter la fréquence des attributs
+      const minorAttributeCounts = {}; // Compte des attributs minoritaires
+
+      // Compter la fréquence des attributs pour la colonne
       groups.forEach(group => {
         group[i].forEach(attribute => {
           if (attribute) { // Ignorer les valeurs vides
@@ -367,13 +365,13 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
         });
       });
 
-      // Si aucun attribut, passer à la colonne suivante
+      // Si tous les attributs sont vides, on passe à la colonne suivante
       if (Object.keys(attributeCounts).length === 0) {
-        consensusPercentages.push('');
+        consensusPercentages.push(''); // Laisser la cellule vide
         continue;
       }
 
-      // Étape 2 : Trouver les attributs uniques
+      // Trouver le nombre unique d'attributs dans toutes les lignes ayant le même HITId
       const uniqueAttributes = new Set();
       groups.forEach(group => {
         group[i].forEach(attribute => {
@@ -382,35 +380,35 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
       });
       const uniqueAttributeCount = uniqueAttributes.size;
 
-      // Étape 3 : Trouver les attributs majoritaires
+      // Récupérer les attributs triés par fréquence
+      const sortedCounts = Object.entries(attributeCounts).sort((a, b) => b[1] - a[1]);
+
+      let totalMajorityCount = 0;
       const totalLines = groups.length;
       const halfOfTotalLines = totalLines / 2;
-      const sortedCounts = Object.entries(attributeCounts).sort((a, b) => b[1] - a[1]);
-      let totalMajorityCount = 0;
-      let majorityAttributes = new Set();
 
+      // Identifier les attributs majoritaires et minoritaires
+      let minorityAttributes = [];
       sortedCounts.forEach(([attribute, count]) => {
-        if (count >= 2) {
+        if (count >= halfOfTotalLines) {
           totalMajorityCount += count;
-          majorityAttributes.add(attribute);
+        } else {
+          minorityAttributes.push(attribute);
+          minorAttributeCounts[attribute] = count;
         }
       });
 
-      // Étape 4 : Trouver les attributs minoritaires
-      let minorityAttributes = new Set(Object.keys(attributeCounts).filter(attr => attributeCounts[attr] < 2));
-
-      // Étape 5 : Trouver le nombre de lignes où ces attributs minoritaires sont absents
-      let nb_ligne_manque_minoritaire = 0;
-      minorityAttributes.forEach(minorAttr => {
-        let countMissing = groups.filter(group => !group[i].includes(minorAttr)).length;
-        nb_ligne_manque_minoritaire += countMissing;
+      // Calculer le nombre de lignes sans chaque attribut minoritaire
+      const linesWithoutMinorAttributes = minorityAttributes.map(minorAttr => {
+        return groups.filter(group => !group[i].includes(minorAttr)).length;
       });
 
-      // Étape 6 : Nouveau calcul du pourcentage de consensus
+      // Calcul du taux d'accord avec les attributs majoritaires et minoritaires
+      const totalLinesWithoutMinorities = linesWithoutMinorAttributes.reduce((acc, count) => acc + count, 0);
       const percentage = totalMajorityCount > 0
-        ? ((totalMajorityCount + nb_ligne_manque_minoritaire) / (uniqueAttributeCount * totalLines)) * 100
+        ? ((totalMajorityCount + totalLinesWithoutMinorities) / (uniqueAttributeCount * totalLines)) * 100
         : 0;
-      
+
       totalPercentage += percentage;
       validColumnsCount++;
       consensusPercentages.push(`${percentage.toFixed(2)}%`);
@@ -419,10 +417,10 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
     // Calcul de la moyenne
     const moyenne = validColumnsCount > 0 ? (totalPercentage / validColumnsCount).toFixed(2) + '%' : '';
 
-    // Déterminer la couleur de fond
+    // Déterminer la couleur de fond en fonction de la valeur de la moyenne
     let moyennePourcentage = parseFloat(moyenne);
-    let moyenneColor = moyennePourcentage >= 90 ? 'lightgreen' :
-                       moyennePourcentage >= 60 ? 'lightyellow' : 
+    let moyenneColor = moyennePourcentage >= 99 ? 'lightgreen' :
+                       moyennePourcentage >= 80 ? 'lightyellow' : 
                        moyennePourcentage > 0 ? 'lightcoral' : 'white';
 
     // Création de la ligne avec colorisation
@@ -432,8 +430,8 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
       <td>${HITId}</td>
       ${consensusPercentages.map(value => {
         let percentage = parseFloat(value);
-        let color = percentage >= 90 ? 'lightgreen' :
-                    percentage >= 60 ? 'lightyellow' : 
+        let color = percentage >= 99 ? 'lightgreen' :
+                    percentage >= 80 ? 'lightyellow' : 
                     percentage > 0 ? 'lightcoral' : 'white';
         return `<td style="background-color:${color}">${value}</td>`;
       }).join('')}
@@ -521,8 +519,8 @@ document.getElementById("shareButton").addEventListener("click", function () {
             if (qasDistribution[j][i]) {
                 let hit = qasDistribution[j][i];
                 let percentage = hit.moyenne;
-                let color = percentage >= 90 ? 'lightgreen' :
-                            percentage >= 60 ? 'lightyellow' :
+                let color = percentage >= 99 ? 'lightgreen' :
+                            percentage >= 80 ? 'lightyellow' :
                             percentage > 0 ? 'lightcoral' : 'white';
                 
                 cellQAS.textContent = hit.hitId;
