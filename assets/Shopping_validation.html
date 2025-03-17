@@ -122,6 +122,12 @@ input {
             document.getElementById("total_result").value = total.toFixed(2);
             calculateDifference();
         });
+		
+		document.getElementById("inputData").addEventListener("dblclick", function () {
+    this.value = ""; // Efface uniquement le contenu de la textarea
+});
+
+		
     </script>
 </body>
 </html>
