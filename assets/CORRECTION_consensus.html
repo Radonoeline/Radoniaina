@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Consensus Rate and Batch Sharing Tool</title>
+  <title>ESTIMATION CONSENSUS CS/FURNITURE/IRR</title>
   <script src="papaparse_rado.js"></script>
   <style>
   /* Style global du corps */
@@ -160,7 +160,7 @@
 
 </head>
 <body>
-  <h1>Consensus Rate and Batch Sharing Tool</h1>
+  <h1>ESTIMATION ACCORD/DESACCORD CS/FURNITURE/IRR</h1>
   <input type="file" id="fileInput" accept=".tsv" />
   <button id="processButton">Process TSV</button>
   <button id="showConsensusButton">Show Consensus</button>
@@ -269,13 +269,19 @@ function processTSV(data) {
             return; // Ignore les lignes avec JSON invalide
         }
 
-        const asins = new Array(10).fill('');
+        const asins = new Array(10).fill(''); // Initialisation du tableau des ASINs
         let index = 0;
         for (const asin in outputData) {
             if (index >= 10) break;
+            
+            // Filtrage des clés selon les conditions spécifiées
             asins[index] = Object.keys(outputData[asin])
-                .filter(key => outputData[asin][key] === true)
-                .join(',');
+                .filter(key => 
+                    outputData[asin][key] === true || 
+                    ["irrelevant", "cannot_judge", "possible_substitute", "exact_match"].includes(outputData[asin][key])
+                )
+                .map(key => `${key}:${outputData[asin][key]}`)  // Ajouter la valeur de la clé pour les conditions supplémentaires
+                .join(',');  // Joindre les clés avec leurs valeurs
             index++;
         }
 
@@ -294,6 +300,7 @@ function processTSV(data) {
     resultTableBody.appendChild(fragment); // Ajout optimisé au DOM
     showNotification("Table de Résultat Créée");
 }
+
 
 function showNotification(message) {
     const notification = document.createElement("div");
@@ -352,6 +359,8 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
     let totalPercentage = 0;
     let validColumnsCount = 0; // Compte des colonnes valides (non vides)
 
+
+///MODIFICATION POUR PRENDRE EN COMPTE LES FICHIERS IRR
     for (let i = 0; i < 10; i++) {
       const attributeCounts = {};
       const minorAttributeCounts = {}; // Compte des attributs minoritaires
@@ -437,7 +446,7 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
       }).join('')}
       <td style="background-color:${moyenneColor}; font-weight:bold;">${moyenne}</td>
     `;
-    
+    ///FIN MODIFICATION POUR PRENDRE EN COMPTE LES FICHIERS IRR
     consensusTableBody.appendChild(newRow);
   });
 });
