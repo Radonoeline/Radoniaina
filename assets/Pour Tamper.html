@@ -405,14 +405,13 @@ function preview(data) {
       //console.log(`Texte copié : "${text}"`);
 
       // ✅ Style temporaire avec transition fluide
-      const originalColor = target.style.backgroundColor;
-      target.style.transition = 'background-color 0.3s ease';
-      target.style.backgroundColor = '#ffe066'; // jaune clair
-
-      // 🔄 Restaure la couleur après 1000ms
-      setTimeout(() => {
-        target.style.backgroundColor = originalColor;
-      }, 1000);
+      const originalColor = target.style.backgroundColor || 'transparent';
+	target.style.transition = 'background-color 0.4s ease';
+	target.style.backgroundColor = '#ffe066'; // jaune foncé doux
+	
+	setTimeout(() => {
+	  target.style.backgroundColor = originalColor;
+	}, 1000);
     }).catch(err => {
       console.error('Erreur de copie :', err);
     });
