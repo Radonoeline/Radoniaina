@@ -160,6 +160,7 @@
 		<button onclick="DetailedAttributConsensus()">Consensus par Attribut</button>
             <button onclick="calculateConsensusWorker()">Consensus par WorkerID</button>
             <button onclick="calculateAccuracyWorkerID()">Accuracy WorkerID</button>
+			<button onclick="extraire_brut()">BRUT</button>
 			<button onClick="generateTable()">Erreurs Attributs/WorkerID</button>
             <button onclick="executeBoth()">Agréement/Résumé</button>
 			<button id="extract_data">Score Globale</button>
@@ -203,6 +204,7 @@
     <tr id="headerRow"></tr>
 </table>
 <table id="resultTable"></table>
+<table id="error_table"  class="hidden"></table>
 
 </div>
 
@@ -939,8 +941,7 @@ function calculateConsensusWorker() {
 
 
 
-	//CALCUL ACCURACY WORKER ID
-	function calculateAccuracyWorkerID() {
+function calculateAccuracyWorkerID() {
     const resultTable = document.getElementById('resultTable');
     if (!resultTable) {
         console.error('Table with id "resultTable" not found.');
@@ -953,37 +954,38 @@ function calculateConsensusWorker() {
         return;
     }
 
-    // Réinitialiser le contenu de la table
-    table.innerHTML = '';
+    table.innerHTML = ''; // Réinitialiser le contenu de la table
 
-    // Ajouter le caption à la table
-    //const caption = table.createCaption();
-    //caption.textContent = 'WORKER ID ACCURACY (%)';
+    const headers = Array.from(resultTable.querySelectorAll('tr')[0].cells).map(th => th.textContent.trim());
 
-    const headers = Array.from(resultTable.querySelectorAll('th')).map(th => th.innerText.trim());
-    const data = Array.from(resultTable.querySelectorAll('tbody tr')).map(row => {
-        const cells = Array.from(row.querySelectorAll('td'));
-        const workeridCell = cells[headers.indexOf('workerid')];
-        const jugementASINCell = cells[headers.indexOf('Jugement ASIN')];
+    const data = Array.from(resultTable.querySelectorAll('tr'))
+        .slice(1) // Ignorer la ligne d'en-tête
+        .map(row => {
+            const cells = Array.from(row.querySelectorAll('td'));
+            if (cells.length !== headers.length) {
+                console.warn('Mismatch in number of cells and headers in row:', row);
+                return null;
+            }
 
-        if (!workeridCell || !jugementASINCell) {
-            console.error('One or more cells are missing in row:', row);
-            return null;
-        }
+            const workeridCell = cells[headers.indexOf('workerid')];
+            const jugementASINCell = cells[headers.indexOf('Jugement ASIN')];
 
-        return {
-            workerid: workeridCell.innerText.trim(),
-            jugementASIN: jugementASINCell.innerText.trim()
-        };
-    }).filter(row => row); // Filter out any rows that were null
+            if (!workeridCell || !jugementASINCell) {
+                console.warn('Missing workerid or Jugement ASIN in row:', row);
+                return null;
+            }
+
+            return {
+                workerid: workeridCell.textContent.trim(),
+                jugementASIN: jugementASINCell.textContent.trim()
+            };
+        }).filter(Boolean); // Supprime les nulls
 
     const workerSummary = {};
     let totalCorrect = 0;
     let totalIncorrect = 0;
 
     data.forEach(row => {
-        if (!row) return;
-
         if (!workerSummary[row.workerid]) {
             workerSummary[row.workerid] = { Correct: 0, Incorrect: 0 };
         }
@@ -1003,48 +1005,43 @@ function calculateConsensusWorker() {
     const headerRow = document.createElement('tr');
     ['workerid', 'Correct', 'Incorrecte', 'Total ASIN traité', 'Accuracy (%)', 'Error Rate (%)'].forEach(text => {
         const th = document.createElement('th');
-        th.innerText = text;
+        th.textContent = text;
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
 
-    Object.keys(workerSummary).forEach(workerid => {
-        const summary = workerSummary[workerid];
+    Object.entries(workerSummary).forEach(([workerid, summary]) => {
         const totalASIN = summary.Correct + summary.Incorrect;
-        const accuracy = totalASIN > 0 ? formatPercentage((summary.Correct / totalASIN * 100)) : '0,00%';
-        const errorRate = totalASIN > 0 ? formatPercentage((summary.Incorrect / totalASIN * 100)) : '0,00%';
+        const accuracy = totalASIN > 0 ? formatPercentage((summary.Correct / totalASIN) * 100) : '0,00%';
+        const errorRate = totalASIN > 0 ? formatPercentage((summary.Incorrect / totalASIN) * 100) : '0,00%';
 
         const row = document.createElement('tr');
         [workerid, summary.Correct, summary.Incorrect, formatTotal(totalASIN), accuracy, errorRate].forEach(text => {
             const td = document.createElement('td');
-            td.innerText = text;
+            td.textContent = text;
             row.appendChild(td);
         });
 
         tbody.appendChild(row);
     });
 
-    const footerRow = document.createElement('tr');
-    const totalRow = {
-        Correct: totalCorrect,
-        Incorrect: totalIncorrect,
-        TotalASIN: totalCorrect + totalIncorrect
-    };
-    const accuracy = totalRow.TotalASIN > 0 ? formatPercentage((totalRow.Correct / totalRow.TotalASIN * 100)) : '0,00%';
-    const errorRate = totalRow.TotalASIN > 0 ? formatPercentage((totalRow.Incorrect / totalRow.TotalASIN * 100)) : '0,00%';
+    // Ligne des totaux
+    const totalASIN = totalCorrect + totalIncorrect;
+    const overallAccuracy = totalASIN > 0 ? formatPercentage((totalCorrect / totalASIN) * 100) : '0,00%';
+    const overallErrorRate = totalASIN > 0 ? formatPercentage((totalIncorrect / totalASIN) * 100) : '0,00%';
 
-    ['Total général', formatTotal(totalRow.Correct), formatTotal(totalRow.Incorrect), formatTotal(totalRow.TotalASIN), accuracy, errorRate].forEach(text => {
+    const footerRow = document.createElement('tr');
+    ['Total général', formatTotal(totalCorrect), formatTotal(totalIncorrect), formatTotal(totalASIN), overallAccuracy, overallErrorRate].forEach(text => {
         const td = document.createElement('td');
-        td.innerText = text;
+        td.textContent = text;
         footerRow.appendChild(td);
     });
-
     tbody.appendChild(footerRow);
+
     table.appendChild(thead);
     table.appendChild(tbody);
-	var table_1=document.getElementById("accuracyWorkerID");
-	
 }
+
 
 // Ensure the caption is visible with CSS
 const style = document.createElement('style');
@@ -1741,6 +1738,11 @@ document.querySelector('button[onclick="DetailedAttributConsensus()"]').addEvent
     showTable('consensusAttributDetailed');
 });
 
+document.querySelector('button[onclick="extraire_brut()"]').addEventListener('click', function() {
+    extraire_brut();
+    showTable('error_table');
+});
+
 document.querySelector('button[onclick="calculateConsensusWorker()"]').addEventListener('click', function() {
     calculateConsensusWorker();
     showTable('consensusWorkerID');
@@ -1788,6 +1790,117 @@ function showTablePair(tableId1, tableId2) {
     if (tableToShow2) {
         tableToShow2.classList.remove('hidden');
     }
+}
+
+//FONCTION GENERATE BRUTE DE DETAILS
+function extraire_brut() {
+    const table = document.getElementById("resultTable");
+    const rows = table.querySelectorAll("tr");
+    if (rows.length < 2) return;
+
+    const header = Array.from(rows[0].cells).map(cell => cell.textContent.trim());
+
+    // Lire la date depuis le datepicker
+    const dateInput = document.getElementById('picking_day');
+    let weekNum = '', formattedDate = '';
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value);
+        const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
+        const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
+        weekNum = Math.ceil(dayDiff / 7);
+        formattedDate = selectedDate.toLocaleDateString('fr-FR');
+    }
+
+    const workerIndex = header.indexOf("workerid");
+
+    // Colonnes à partir de la 9e (index 8) jusqu'à la fin
+    const excluded = [
+        "Jugement ASIN", "Jugement Assignement", "Jugement HitId",
+        "cannxxxot_judge", "irrexxxxlevant", "possixxxxble_substitute", "exacxxxxt_match"
+    ];
+    const errorHeaders = header.slice(8).filter(h => !excluded.includes(h));
+    const errorIndexes = errorHeaders.map(h => header.indexOf(h));
+
+    const grouped = {};
+
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].cells;
+        const workerId = cells[workerIndex]?.textContent.trim();
+        if (!workerId) continue;
+        if (!grouped[workerId]) grouped[workerId] = [];
+        grouped[workerId].push(cells);
+    }
+
+    const error_brut = [];
+
+    for (const [workerId, lignes] of Object.entries(grouped)) {
+        let c_maj = 0, c_min = 0, i_maj = 0, i_min = 0, somme = 0;
+        const countByAttr = new Array(errorHeaders.length).fill(0);
+
+        lignes.forEach(cells => {
+            errorIndexes.forEach((colIdx, j) => {
+                const val = cells[colIdx]?.textContent.trim();
+                if (!val) return;
+
+                if (val === "c_maj") c_maj++;
+                else if (val === "c_min") c_min++;
+                else if (val === "i_maj" || val === "missing_maj") i_maj++;
+                else if (val === "i_min" || val === "missing_min") i_min++;
+
+                if (["i_maj", "i_min", "missing_maj", "missing_min"].includes(val)) {
+                    countByAttr[j]++;
+                    somme++;
+                }
+            });
+        });
+
+        const row = [
+            weekNum,                                // Weeks
+            new Date(dateInput.value).getMonth() + 1, // Months
+            formattedDate,                          // Date-prod
+            workerId,
+            c_maj,
+            c_min,
+            i_maj,
+            i_min,
+            somme,
+            ...countByAttr
+        ];
+
+        error_brut.push(row);
+    }
+
+    const finalHeader = [
+        "Weeks", "Months", "Date-prod", "workerid",
+        "Correct majority", "Correct minority",
+        "Incorrect majority", "Incorrect minority",
+        "somme answer",
+        ...errorHeaders
+    ];
+
+    error_brut.unshift(finalHeader);
+
+    // AFFICHAGE DANS LA TABLE HTML id="error_table"
+    const tableError = document.getElementById("error_table");
+    tableError.innerHTML = "";
+
+    error_brut.forEach((rowArr, rowIndex) => {
+        const tr = document.createElement("tr");
+        rowArr.forEach((cellText, cellIndex) => {
+            const cell = document.createElement(rowIndex === 0 ? "th" : "td");
+            cell.textContent = cellText;
+
+            // Appliquer le centrage sauf pour les 4 premiers colonnes
+            if (cellIndex >= 4) {
+                cell.style.textAlign = "center";
+            }
+
+            tr.appendChild(cell);
+        });
+        tableError.appendChild(tr);
+    });
+
+    return error_brut;
 }
 
 
