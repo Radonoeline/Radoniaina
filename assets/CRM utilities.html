@@ -142,6 +142,8 @@
 			<option value="furniture">FURNITURE</option> 
 			<option value="furniture_irr">FURNITURE IRR</option>
 		</select>
+		<label for="picking_day">Sélectionner une date :</label>
+		<input type="date" id="picking_day" />
 		<div id="textAreaContainer" style="display: none;">
 		<textarea id="dataAsin-data" rows="10" cols="50" placeholder="Collez ici les détails ASIN..."></textarea>
 		</div>
@@ -158,9 +160,10 @@
 		<button onclick="DetailedAttributConsensus()">Consensus par Attribut</button>
             <button onclick="calculateConsensusWorker()">Consensus par WorkerID</button>
             <button onclick="calculateAccuracyWorkerID()">Accuracy WorkerID</button>
+			<button onClick="generateTable()">Erreurs Attributs/WorkerID</button>
             <button onclick="executeBoth()">Agréement/Résumé</button>
 			<button id="extract_data">Score Globale</button>
-			<button onClick="generateTable()">Erreurs Attributs/WorkerID</button>
+			
 			<button id="exportButton">Exporter Fichier Brute</button>
 		</div>
     </header>
@@ -772,8 +775,7 @@ function processDataDailyFromTextarea() {
 
 	
 
-	//CALCUL CONSENSUS PAR WORKER ID DETAILLES	
-	function calculateConsensusWorker() {
+function calculateConsensusWorker() {
     const resultTable = document.getElementById('resultTable');
     if (!resultTable) {
         console.error('Table with id "resultTable" not found.');
@@ -809,12 +811,10 @@ function processDataDailyFromTextarea() {
             workerid: workeridCell.innerText.trim(),
             ...rowData
         };
-    }).filter(row => row); // Filter out any rows that were null
+    }).filter(row => row);
 
     const summary = {};
     data.forEach(row => {
-        if (!row) return;
-
         if (!summary[row.workerid]) {
             summary[row.workerid] = { 
                 correct_majority: 0, 
@@ -826,24 +826,17 @@ function processDataDailyFromTextarea() {
         }
 
         Object.values(row).forEach(value => {
-            if (value.includes('c_maj')) {
-                summary[row.workerid].correct_majority += 1;
-            }
-            if (value.includes('c_min')) {
-                summary[row.workerid].correct_minority += 1;
-            }
-            if (value.includes('i_maj') || value.includes('missing_maj')) {
-                summary[row.workerid].incorrect_majority += 1;
-            }
-            if (value.includes('i_min') || value.includes('missing_min')) {
-                summary[row.workerid].incorrect_minority += 1;
-            }
+            if (value.includes('c_maj')) summary[row.workerid].correct_majority++;
+            if (value.includes('c_min')) summary[row.workerid].correct_minority++;
+            if (value.includes('i_maj') || value.includes('missing_maj')) summary[row.workerid].incorrect_majority++;
+            if (value.includes('i_min') || value.includes('missing_min')) summary[row.workerid].incorrect_minority++;
         });
 
-        summary[row.workerid].total = summary[row.workerid].correct_majority + 
-                                      summary[row.workerid].correct_minority + 
-                                      summary[row.workerid].incorrect_majority + 
-                                      summary[row.workerid].incorrect_minority;
+        summary[row.workerid].total =
+            summary[row.workerid].correct_majority +
+            summary[row.workerid].correct_minority +
+            summary[row.workerid].incorrect_majority +
+            summary[row.workerid].incorrect_minority;
     });
 
     const totalCorrectMajority = Object.values(summary).reduce((sum, row) => sum + row.correct_majority, 0);
@@ -853,17 +846,34 @@ function processDataDailyFromTextarea() {
     const grandTotal = totalCorrectMajority + totalCorrectMinority + totalIncorrectMajority + totalIncorrectMinority;
 
     const table = document.getElementById('consensusWorkerID');
-    table.innerHTML = '';
+    table.innerHTML = ''; // Reset table content
 
-    // Adding caption to the table
-    const caption = table.createCaption();
-    caption.textContent = 'WORKER ID CONSENSUS';
+    // Lire la date depuis le datepicker
+    const dateInput = document.getElementById('picking_day');
+    let weekNum = '', monthStr = '', formattedDate = '';
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value);
+        const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
+        const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
+        weekNum = Math.ceil(dayDiff / 7);
+
+        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
+        formattedDate = selectedDate.toLocaleDateString('fr-FR');
+    }
 
     const thead = document.createElement('thead');
     const tbody = document.createElement('tbody');
 
     const headerRow = document.createElement('tr');
-    ['workerid', 'Correct Majority', 'taux %', 'Correct Minority', 'taux %', 'Incorrect Majority', 'taux %', 'Incorrect Minority', 'taux %', 'Total', 'Consensus Correctness (%)', 'Attribute Error Rate (%)'].forEach(text => {
+    [
+        'Weeks', 'Months', 'Date', 'workerid',
+        'Correct Majority', 'Taux %',
+        'Correct Minority', 'Taux %',
+        'Incorrect Majority', 'Taux %',
+        'Incorrect Minority', 'Taux %',
+        'Total', 'Consensus Correctness (%)', 'Attribute Error Rate (%)'
+    ].forEach(text => {
         const th = document.createElement('th');
         th.innerText = text;
         headerRow.appendChild(th);
@@ -871,16 +881,23 @@ function processDataDailyFromTextarea() {
     thead.appendChild(headerRow);
 
     Object.entries(summary).forEach(([workerid, { correct_majority, correct_minority, incorrect_majority, incorrect_minority, total }]) => {
-        const correctMajorityPercentage = grandTotal > 0 ? (correct_majority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
-        const correctMinorityPercentage = grandTotal > 0 ? (correct_minority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
-        const incorrectMajorityPercentage = grandTotal > 0 ? (incorrect_majority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
-        const incorrectMinorityPercentage = grandTotal > 0 ? (incorrect_minority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        const correctMajorityPercentage = grandTotal > 0 ? formatPercentage(correct_majority * 100 / grandTotal) : '0,00%';
+        const correctMinorityPercentage = grandTotal > 0 ? formatPercentage(correct_minority * 100 / grandTotal) : '0,00%';
+        const incorrectMajorityPercentage = grandTotal > 0 ? formatPercentage(incorrect_majority * 100 / grandTotal) : '0,00%';
+        const incorrectMinorityPercentage = grandTotal > 0 ? formatPercentage(incorrect_minority * 100 / grandTotal) : '0,00%';
 
         const consensusCorrectness = total > 0 ? formatPercentage((correct_majority + correct_minority) * 100 / (totalCorrectMajority + totalCorrectMinority)) : '0,00%';
         const errorRate = total > 0 ? formatPercentage((incorrect_majority + incorrect_minority) * 100 / (totalIncorrectMajority + totalIncorrectMinority)) : '0,00%';
 
         const row = document.createElement('tr');
-        [workerid, correct_majority, correctMajorityPercentage, correct_minority, correctMinorityPercentage, incorrect_majority, incorrectMajorityPercentage, incorrect_minority, incorrectMinorityPercentage, formatTotal(total), consensusCorrectness, errorRate].forEach(text => {
+        [
+            weekNum, monthStr, formattedDate, workerid,
+            correct_majority, correctMajorityPercentage,
+            correct_minority, correctMinorityPercentage,
+            incorrect_majority, incorrectMajorityPercentage,
+            incorrect_minority, incorrectMinorityPercentage,
+            formatTotal(total), consensusCorrectness, errorRate
+        ].forEach(text => {
             const td = document.createElement('td');
             td.innerText = text;
             row.appendChild(td);
@@ -890,7 +907,16 @@ function processDataDailyFromTextarea() {
     });
 
     const footerRow = document.createElement('tr');
-    ['Total', formatTotal(totalCorrectMajority), formatPercentage(totalCorrectMajority * 100 / grandTotal), formatTotal(totalCorrectMinority), formatPercentage(totalCorrectMinority * 100 / grandTotal), formatTotal(totalIncorrectMajority), formatPercentage(totalIncorrectMajority * 100 / grandTotal), formatTotal(totalIncorrectMinority), formatPercentage(totalIncorrectMinority * 100 / grandTotal), formatTotal(grandTotal), formatPercentage((totalCorrectMajority + totalCorrectMinority) * 100 / grandTotal), formatPercentage((totalIncorrectMajority + totalIncorrectMinority) * 100 / grandTotal)].forEach(text => {
+    [
+        weekNum, monthStr, formattedDate, 'Total',
+        formatTotal(totalCorrectMajority), formatPercentage(totalCorrectMajority * 100 / grandTotal),
+        formatTotal(totalCorrectMinority), formatPercentage(totalCorrectMinority * 100 / grandTotal),
+        formatTotal(totalIncorrectMajority), formatPercentage(totalIncorrectMajority * 100 / grandTotal),
+        formatTotal(totalIncorrectMinority), formatPercentage(totalIncorrectMinority * 100 / grandTotal),
+        formatTotal(grandTotal),
+        formatPercentage((totalCorrectMajority + totalCorrectMinority) * 100 / grandTotal),
+        formatPercentage((totalIncorrectMajority + totalIncorrectMinority) * 100 / grandTotal)
+    ].forEach(text => {
         const td = document.createElement('td');
         td.innerText = text;
         footerRow.appendChild(td);
@@ -900,7 +926,16 @@ function processDataDailyFromTextarea() {
     table.appendChild(thead);
     table.appendChild(tbody);
 
+    // Utilitaires
+    function formatPercentage(val) {
+        return parseFloat(val).toFixed(2).replace('.', ',') + '%';
+    }
+
+    function formatTotal(val) {
+        return Number.isInteger(val) ? val : Math.round(val);
+    }
 }
+
 
 
 
@@ -922,8 +957,8 @@ function processDataDailyFromTextarea() {
     table.innerHTML = '';
 
     // Ajouter le caption à la table
-    const caption = table.createCaption();
-    caption.textContent = 'WORKER ID ACCURACY (%)';
+    //const caption = table.createCaption();
+    //caption.textContent = 'WORKER ID ACCURACY (%)';
 
     const headers = Array.from(resultTable.querySelectorAll('th')).map(th => th.innerText.trim());
     const data = Array.from(resultTable.querySelectorAll('tbody tr')).map(row => {
@@ -1190,23 +1225,21 @@ document.head.appendChild(style);
 
 
 
-	function DetailedAttributConsensus() {
+function DetailedAttributConsensus() {
     const resultTable = document.getElementById('resultTable');
     const attributes = {};
 
-    // Trouver les en-têtes de colonnes
     const headers = Array.from(resultTable.querySelectorAll('th')).map(th => th.innerText.trim());
-
-    // Trouver l'index de la colonne 'juge' et des colonnes d'attributs
     const jugeIndex = headers.indexOf('juge');
-    const attributeColumns = headers.slice(jugeIndex + 1).filter(col => col !== 'Jugement ASIN' && col !== 'Jugement Assignement' && col !== 'Jugement HitId');
+    const attributeColumns = headers.slice(jugeIndex + 1).filter(col =>
+        col !== 'Jugement ASIN' && col !== 'Jugement Assignement' && col !== 'Jugement HitId'
+    );
 
     if (jugeIndex === -1) {
         console.error('Colonne "juge" non trouvée');
         return;
     }
 
-    // Initialiser les attributs pour les colonnes
     attributeColumns.forEach(attr => {
         attributes[attr] = {
             correctMajority: 0,
@@ -1216,7 +1249,6 @@ document.head.appendChild(style);
         };
     });
 
-    // Collecter les données de la table existante
     for (let i = 1; i < resultTable.rows.length; i++) {
         const row = resultTable.rows[i];
         const cellValues = row.cells;
@@ -1239,7 +1271,6 @@ document.head.appendChild(style);
         });
     }
 
-    // Calculer les totaux globaux
     let grandTotalCorrectMajority = 0;
     let grandTotalCorrectMinority = 0;
     let grandTotalIncorrectMajority = 0;
@@ -1252,34 +1283,32 @@ document.head.appendChild(style);
         grandTotalIncorrectMinority += data.incorrectMinority;
     });
 
-    // Calculer le grand total général
     const grandTotal = grandTotalCorrectMajority + grandTotalCorrectMinority + grandTotalIncorrectMajority + grandTotalIncorrectMinority;
 
-    // Référencer la table existante
-    const detailedTable = document.getElementById('consensusAttributDetailed');
+    const dateInput = document.getElementById('picking_day');
+    let weekNum = '', monthStr = '', formattedDate = '';
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value);
+        const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
+        const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
+        weekNum = Math.ceil(dayDiff / 7);
 
-    // Réinitialiser le contenu de la table
+        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
+        formattedDate = selectedDate.toLocaleDateString('fr-FR');
+    }
+
+    const detailedTable = document.getElementById('consensusAttributDetailed');
     detailedTable.innerHTML = '';
 
-    // Ajouter une légende à la table
-    const caption = detailedTable.createCaption();
-    caption.textContent = 'ATTRIBUTS CONSENSUS';
-
-    // Ajouter l'en-tête
     const headerRowNew = detailedTable.insertRow();
     const newHeaders = [
-        'Attributs',
-        'Correct Majority',
-        'Taux %',
-        'Correct Minority',
-        'Taux %',
-        'Incorrect Majority',
-        'Taux %',
-        'Incorrect Minority',
-        'Taux %',
-        'Total',
-        'Consensus Correctness (%)',
-        'Attribute Error Rate (%)'
+        'Weeks', 'Months', 'Date', 'Attributs',
+        'Correct Majority', 'Taux %',
+        'Correct Minority', 'Taux %',
+        'Incorrect Majority', 'Taux %',
+        'Incorrect Minority', 'Taux %',
+        'Total', 'Consensus Correctness (%)', 'Attribute Error Rate (%)'
     ];
 
     newHeaders.forEach(header => {
@@ -1288,61 +1317,65 @@ document.head.appendChild(style);
         headerRowNew.appendChild(cell);
     });
 
-    // Ajouter les lignes de données
+    // Attributs à ne pas afficher si vides
+    const excludedEmptyAttributes = [
+        "cannxxxot_judge",
+        "exacxxxxt_match",
+        "irrexxxxlevant",
+        "possixxxxble_substitute"
+    ];
+
     Object.keys(attributes).forEach(attr => {
         const data = attributes[attr];
         const total = data.correctMajority + data.correctMinority + data.incorrectMajority + data.incorrectMinority;
 
+        // Ne pas afficher les attributs exclus si total == 0
+        if (excludedEmptyAttributes.includes(attr) && total === 0) return;
+
         const row = detailedTable.insertRow();
+        row.insertCell().textContent = weekNum;
+        row.insertCell().textContent = monthStr;
+        row.insertCell().textContent = formattedDate;
         row.insertCell().textContent = attr;
+
         row.insertCell().textContent = data.correctMajority;
-        row.insertCell().textContent = grandTotal > 0 ? (data.correctMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = grandTotal > 0 ? formatPct(data.correctMajority, grandTotal) : '0,00%';
         row.insertCell().textContent = data.correctMinority;
-        row.insertCell().textContent = grandTotal > 0 ? (data.correctMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = grandTotal > 0 ? formatPct(data.correctMinority, grandTotal) : '0,00%';
         row.insertCell().textContent = data.incorrectMajority;
-        row.insertCell().textContent = grandTotal > 0 ? (data.incorrectMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = grandTotal > 0 ? formatPct(data.incorrectMajority, grandTotal) : '0,00%';
         row.insertCell().textContent = data.incorrectMinority;
-        row.insertCell().textContent = grandTotal > 0 ? (data.incorrectMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+        row.insertCell().textContent = grandTotal > 0 ? formatPct(data.incorrectMinority, grandTotal) : '0,00%';
 
         row.insertCell().textContent = total;
-
-        const consensusCorrectness = (grandTotalCorrectMajority + grandTotalCorrectMinority > 0)
-            ? ((data.correctMajority + data.correctMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
-            : '0,00%';
-        row.insertCell().textContent = consensusCorrectness;
-
-        const attributeErrorRate = (grandTotalIncorrectMajority + grandTotalIncorrectMinority > 0)
-            ? ((data.incorrectMajority + data.incorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
-            : '0,00%';
-        row.insertCell().textContent = attributeErrorRate;
+        row.insertCell().textContent = grandTotal > 0 ? formatPct(data.correctMajority + data.correctMinority, grandTotal) : '0,00%';
+        row.insertCell().textContent = grandTotal > 0 ? formatPct(data.incorrectMajority + data.incorrectMinority, grandTotal) : '0,00%';
     });
 
-    // Ajouter la ligne totale
     const totalRow = detailedTable.insertRow();
+    totalRow.insertCell().textContent = weekNum;
+    totalRow.insertCell().textContent = monthStr;
+    totalRow.insertCell().textContent = formattedDate;
     totalRow.insertCell().textContent = 'Total';
+
     totalRow.insertCell().textContent = grandTotalCorrectMajority;
-    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalCorrectMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+    totalRow.insertCell().textContent = formatPct(grandTotalCorrectMajority, grandTotal);
     totalRow.insertCell().textContent = grandTotalCorrectMinority;
-    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalCorrectMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+    totalRow.insertCell().textContent = formatPct(grandTotalCorrectMinority, grandTotal);
     totalRow.insertCell().textContent = grandTotalIncorrectMajority;
-    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalIncorrectMajority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
+    totalRow.insertCell().textContent = formatPct(grandTotalIncorrectMajority, grandTotal);
     totalRow.insertCell().textContent = grandTotalIncorrectMinority;
-    totalRow.insertCell().textContent = grandTotal > 0 ? (grandTotalIncorrectMinority * 100 / grandTotal).toFixed(2).replace('.', ',') + '%' : '0,00%';
-
+    totalRow.insertCell().textContent = formatPct(grandTotalIncorrectMinority, grandTotal);
     totalRow.insertCell().textContent = grandTotal;
+    totalRow.insertCell().textContent = formatPct(grandTotalCorrectMajority + grandTotalCorrectMinority, grandTotal);
+    totalRow.insertCell().textContent = formatPct(grandTotalIncorrectMajority + grandTotalIncorrectMinority, grandTotal);
 
-    const totalConsensusCorrectness = (grandTotalCorrectMajority + grandTotalCorrectMinority > 0)
-        ? ((grandTotalCorrectMajority + grandTotalCorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
-        : '0,00%';
-    totalRow.insertCell().textContent = totalConsensusCorrectness;
-
-    const totalAttributeErrorRate = (grandTotalIncorrectMajority + grandTotalIncorrectMinority > 0)
-        ? ((grandTotalIncorrectMajority + grandTotalIncorrectMinority) / grandTotal * 100).toFixed(2).replace('.', ',') + '%'
-        : '0,00%';
-    totalRow.insertCell().textContent = totalAttributeErrorRate;
-
-	
+    function formatPct(n, d) {
+        return ((n * 100) / d).toFixed(2).replace('.', ',') + '%';
+    }
 }
+
+
 
 
 
@@ -1553,95 +1586,131 @@ function generateTable() {
     const rows = resultTable.getElementsByTagName("tr");
     const workerData = {};
     let startCol = 0, endCol = 0;
-    let workerIdColIndex = -1; // Initialiser l'index de la colonne workerid
+    let workerIdColIndex = -1;
 
-    // Effacer les en-têtes existants dans headerRow pour éviter les duplications
-    while (headerRow.firstChild) {
-        headerRow.removeChild(headerRow.firstChild);
+    const excludedEmptyAttributes = [
+        "cannxxxot_judge",
+        "exacxxxxt_match",
+        "irrexxxxlevant",
+        "possixxxxble_substitute"
+    ];
+
+    // Obtenir la date depuis le datepicker
+    const dateInput = document.getElementById('picking_day');
+    let weekNum = '', monthStr = '', formattedDate = '';
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value);
+        const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
+        const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
+        weekNum = Math.ceil(dayDiff / 7);
+        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
+        formattedDate = selectedDate.toLocaleDateString('fr-FR');
     }
 
-    // Récupérer les en-têtes de la première ligne (ligne d'en-têtes)
-    const headers = Array.from(rows[0].getElementsByTagName("th")).map(header => header.innerText.trim());
+    while (headerRow.firstChild) headerRow.removeChild(headerRow.firstChild);
 
-    // Localiser l'index de la colonne "workerid" et des colonnes "juge" et "Jugement ASIN"
+    const headers = Array.from(rows[0].getElementsByTagName("th")).map(header => header.innerText.trim());
     workerIdColIndex = headers.indexOf('workerid');
     startCol = headers.indexOf('juge') + 1;
     endCol = headers.indexOf('Jugement ASIN') - 1;
 
-    // Ajouter dynamiquement la colonne "workerid" à l'en-tête
-    const workerIdTh = document.createElement("th");
-    workerIdTh.innerText = "workerid";
-    headerRow.appendChild(workerIdTh);
+    const errorColumns = headers.slice(startCol, endCol + 1);
+    const errorTotals = {};
+    const grandTotal = { Total: 0 };
 
-    // Créer dynamiquement les colonnes du tableau
-    for (let i = startCol; i <= endCol; i++) {
-        const th = document.createElement("th");
-        th.innerText = headers[i];
-        headerRow.appendChild(th);
-    }
+    for (let attr of errorColumns) errorTotals[attr] = 0;
 
-    // Ajouter la colonne "Total"
-    const totalTh = document.createElement("th");
-    totalTh.innerText = "Total";
-    headerRow.appendChild(totalTh);
-
-    // Initialiser le grand total pour chaque colonne d'erreurs
-    const grandTotal = {};
-    for (let i = startCol; i <= endCol; i++) {
-        grandTotal[headers[i]] = 0;
-    }
-    grandTotal["Total"] = 0;
-
-    // Parcourir les lignes du tableau source
     for (let i = 1; i < rows.length; i++) {
         const cells = rows[i].getElementsByTagName("td");
-
-        // Utiliser l'index localisé pour obtenir le workerid
         const workerid = cells[workerIdColIndex].innerText.trim();
-        console.log(`WorkerID extrait de la ligne ${i}: ${workerid}`);  // Ajouter un log pour afficher le workerid extrait
 
-        // Initialiser le workerid s'il n'est pas encore enregistré
         if (!workerData[workerid]) {
             workerData[workerid] = {};
-            for (let j = startCol; j <= endCol; j++) {
-                workerData[workerid][headers[j]] = 0;
+            for (let attr of errorColumns) {
+                workerData[workerid][attr] = 0;
             }
             workerData[workerid]["Total"] = 0;
         }
 
-        // Compter les occurrences des valeurs et calculer le total
         for (let j = startCol; j <= endCol; j++) {
+            const attr = headers[j];
             const value = cells[j].innerText.trim();
-            if (value === 'i_maj' || value === 'i_min' ||  value === 'missing_min' || value === 'missing_maj') {
-                workerData[workerid][headers[j]] += 1;
-                workerData[workerid]["Total"] += 1;
-                grandTotal[headers[j]] += 1;
-                grandTotal["Total"] += 1;
+            if (['i_maj', 'i_min', 'missing_min', 'missing_maj'].includes(value)) {
+                workerData[workerid][attr]++;
+                workerData[workerid]["Total"]++;
+                errorTotals[attr]++;
+                grandTotal["Total"]++;
             }
         }
     }
 
-    // Effacer les lignes existantes dans nbErreursTable pour éviter les duplications
-    while (nbErreursTable.rows.length > 1) {
-        nbErreursTable.deleteRow(1);
+    // Remplacer noms d’attributs vides par "_" si tous les scores sont à 0
+    const renamedAttributes = {};
+    for (let attr of errorColumns) {
+        if (excludedEmptyAttributes.includes(attr) && errorTotals[attr] === 0) {
+            renamedAttributes[attr] = '_';
+        } else {
+            renamedAttributes[attr] = attr;
+        }
     }
 
-    // Remplir le tableau généré avec les données calculées
+    while (nbErreursTable.rows.length > 1) nbErreursTable.deleteRow(1);
+
     for (const [workerid, data] of Object.entries(workerData)) {
         const row = nbErreursTable.insertRow();
+
+        // Ajouter la date
+        row.insertCell().innerText = weekNum;
+        row.insertCell().innerText = monthStr;
+        row.insertCell().innerText = formattedDate;
+
         row.insertCell().innerText = workerid;
-        Object.values(data).forEach(value => row.insertCell().innerText = value);
+
+        for (let attr of errorColumns) {
+            row.insertCell().innerText = data[attr];
+        }
+        row.insertCell().innerText = data["Total"];
     }
 
-    // Ajouter la ligne "Grand Total" au bas du tableau
     const totalRow = nbErreursTable.insertRow();
-    const totalCell = totalRow.insertCell();
-    totalCell.innerText = "Grand Total";
-    Object.values(grandTotal).forEach(value => {
-        const cell = totalRow.insertCell();
-        cell.innerText = value;
-    });
+    totalRow.insertCell().innerText = weekNum;
+    totalRow.insertCell().innerText = monthStr;
+    totalRow.insertCell().innerText = formattedDate;
+    totalRow.insertCell().innerText = "Grand Total";
+
+    for (let attr of errorColumns) {
+        totalRow.insertCell().innerText = errorTotals[attr];
+    }
+    totalRow.insertCell().innerText = grandTotal["Total"];
+
+    // Entêtes du tableau (ajoutés après le remplissage pour inclure renaming)
+    while (headerRow.firstChild) headerRow.removeChild(headerRow.firstChild);
+    const weekTh = document.createElement("th");
+    weekTh.innerText = "Weeks";
+    headerRow.appendChild(weekTh);
+    const monthTh = document.createElement("th");
+    monthTh.innerText = "Months";
+    headerRow.appendChild(monthTh);
+    const dateTh = document.createElement("th");
+    dateTh.innerText = "Date";
+    headerRow.appendChild(dateTh);
+
+    const workerTh = document.createElement("th");
+    workerTh.innerText = "workerid";
+    headerRow.appendChild(workerTh);
+
+    for (let attr of errorColumns) {
+        const th = document.createElement("th");
+        th.innerText = renamedAttributes[attr];
+        headerRow.appendChild(th);
+    }
+
+    const totalTh = document.createElement("th");
+    totalTh.innerText = "Total";
+    headerRow.appendChild(totalTh);
 }
+
 
 
 
