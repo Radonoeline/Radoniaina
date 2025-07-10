@@ -144,6 +144,22 @@
 		</select>
 		<label for="picking_day">Sélectionner une date :</label>
 		<input type="date" id="picking_day" />
+		<label for="picking_index">Sélectionner une Index :</label>
+		<select id="picking_index">
+		  <option value="AIN-LMR-CAUI">AIN-LMR-CAUI</option>
+		  <option value="AIN-LMR-COUI">AIN-LMR-COUI</option>
+		  <option value="AIN-LMR-CBUI">AIN-LMR-CBUI</option>
+		  <option value="AIN-LMR-CBUI2">AIN-LMR-CBUI2</option>
+		  <option value="AIN-LMR-CODE">AIN-LMR-CODE</option>
+		  <option value="AIN-LMR-CADE">AIN-LMR-CADE</option>
+		  <option value="AIN-LMR-FAUI">AIN-LMR-FAUI</option>
+		  <option value="AIN-LMR-FOUI">AIN-LMR-FOUI</option>
+		  <option value="AIN-LMR-FBUI">AIN-LMR-FBUI</option>
+		  <option value="AIN-LMR-FBUI2">AIN-LMR-FBUI2</option>
+		  <option value="AIN-LMR-FADE">AIN-LMR-FADE</option>
+		  <option value="AIN-MTM-IRR">AIN-MTM-IRR</option>
+		</select>
+
 		<div id="textAreaContainer" style="display: none;">
 		<textarea id="dataAsin-data" rows="10" cols="50" placeholder="Collez ici les détails ASIN..."></textarea>
 		</div>
@@ -813,17 +829,17 @@ function calculateConsensusWorker() {
             workerid: workeridCell.innerText.trim(),
             ...rowData
         };
-    }).filter(row => row);
+    }).filter(Boolean);
 
     const summary = {};
     data.forEach(row => {
         if (!summary[row.workerid]) {
-            summary[row.workerid] = { 
-                correct_majority: 0, 
-                correct_minority: 0, 
-                incorrect_majority: 0, 
-                incorrect_minority: 0, 
-                total: 0 
+            summary[row.workerid] = {
+                correct_majority: 0,
+                correct_minority: 0,
+                incorrect_majority: 0,
+                incorrect_minority: 0,
+                total: 0
             };
         }
 
@@ -850,9 +866,11 @@ function calculateConsensusWorker() {
     const table = document.getElementById('consensusWorkerID');
     table.innerHTML = ''; // Reset table content
 
-    // Lire la date depuis le datepicker
+    // 🔍 Lire la date et index
     const dateInput = document.getElementById('picking_day');
-    let weekNum = '', monthStr = '', formattedDate = '';
+    const indexInput = document.getElementById('picking_index');
+
+    let yearStr = '', weekNum = '', monthStr = '', formattedDate = '', indexValue = '';
     if (dateInput && dateInput.value) {
         const selectedDate = new Date(dateInput.value);
         const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
@@ -862,6 +880,11 @@ function calculateConsensusWorker() {
         const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
         monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
+        yearStr = selectedDate.getFullYear().toString();
+    }
+
+    if (indexInput && indexInput.value) {
+        indexValue = indexInput.value;
     }
 
     const thead = document.createElement('thead');
@@ -869,7 +892,7 @@ function calculateConsensusWorker() {
 
     const headerRow = document.createElement('tr');
     [
-        'Weeks', 'Months', 'Date', 'workerid',
+        'Years', 'Months', 'Weeks', 'Date', 'Index', 'workerid',
         'Correct Majority', 'Taux %',
         'Correct Minority', 'Taux %',
         'Incorrect Majority', 'Taux %',
@@ -882,7 +905,13 @@ function calculateConsensusWorker() {
     });
     thead.appendChild(headerRow);
 
-    Object.entries(summary).forEach(([workerid, { correct_majority, correct_minority, incorrect_majority, incorrect_minority, total }]) => {
+    Object.entries(summary).forEach(([workerid, stats]) => {
+        const {
+            correct_majority, correct_minority,
+            incorrect_majority, incorrect_minority, total
+        } = stats;
+
+        const row = document.createElement('tr');
         const correctMajorityPercentage = grandTotal > 0 ? formatPercentage(correct_majority * 100 / grandTotal) : '0,00%';
         const correctMinorityPercentage = grandTotal > 0 ? formatPercentage(correct_minority * 100 / grandTotal) : '0,00%';
         const incorrectMajorityPercentage = grandTotal > 0 ? formatPercentage(incorrect_majority * 100 / grandTotal) : '0,00%';
@@ -891,9 +920,8 @@ function calculateConsensusWorker() {
         const consensusCorrectness = total > 0 ? formatPercentage((correct_majority + correct_minority) * 100 / (totalCorrectMajority + totalCorrectMinority)) : '0,00%';
         const errorRate = total > 0 ? formatPercentage((incorrect_majority + incorrect_minority) * 100 / (totalIncorrectMajority + totalIncorrectMinority)) : '0,00%';
 
-        const row = document.createElement('tr');
         [
-            weekNum, monthStr, formattedDate, workerid,
+            yearStr, monthStr, weekNum, formattedDate, indexValue, workerid,
             correct_majority, correctMajorityPercentage,
             correct_minority, correctMinorityPercentage,
             incorrect_majority, incorrectMajorityPercentage,
@@ -909,15 +937,16 @@ function calculateConsensusWorker() {
     });
 
     const footerRow = document.createElement('tr');
+    const consensusTotalCorrectness = formatPercentage((totalCorrectMajority + totalCorrectMinority) * 100 / grandTotal);
+    const consensusTotalErrorRate = formatPercentage((totalIncorrectMajority + totalIncorrectMinority) * 100 / grandTotal);
+
     [
-        weekNum, monthStr, formattedDate, 'Total',
+        "", "", "", "", "", 'Total',
         formatTotal(totalCorrectMajority), formatPercentage(totalCorrectMajority * 100 / grandTotal),
         formatTotal(totalCorrectMinority), formatPercentage(totalCorrectMinority * 100 / grandTotal),
         formatTotal(totalIncorrectMajority), formatPercentage(totalIncorrectMajority * 100 / grandTotal),
         formatTotal(totalIncorrectMinority), formatPercentage(totalIncorrectMinority * 100 / grandTotal),
-        formatTotal(grandTotal),
-        formatPercentage((totalCorrectMajority + totalCorrectMinority) * 100 / grandTotal),
-        formatPercentage((totalIncorrectMajority + totalIncorrectMinority) * 100 / grandTotal)
+        formatTotal(grandTotal), consensusTotalCorrectness, consensusTotalErrorRate
     ].forEach(text => {
         const td = document.createElement('td');
         td.innerText = text;
@@ -941,6 +970,7 @@ function calculateConsensusWorker() {
 
 
 
+
 function calculateAccuracyWorkerID() {
     const resultTable = document.getElementById('resultTable');
     if (!resultTable) {
@@ -955,6 +985,27 @@ function calculateAccuracyWorkerID() {
     }
 
     table.innerHTML = ''; // Réinitialiser le contenu de la table
+
+    // Récupérer les infos de date et index
+    const dateInput = document.getElementById('picking_day');
+    const indexInput = document.getElementById('picking_index');
+
+    let yearStr = '', weekNum = '', monthStr = '', formattedDate = '', indexValue = '';
+    if (dateInput && dateInput.value) {
+        const selectedDate = new Date(dateInput.value);
+        const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
+        const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
+        weekNum = Math.ceil(dayDiff / 7);
+
+        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
+        formattedDate = selectedDate.toLocaleDateString('fr-FR');
+        yearStr = selectedDate.getFullYear().toString();
+    }
+
+    if (indexInput && indexInput.value) {
+        indexValue = indexInput.value;
+    }
 
     const headers = Array.from(resultTable.querySelectorAll('tr')[0].cells).map(th => th.textContent.trim());
 
@@ -1003,7 +1054,11 @@ function calculateAccuracyWorkerID() {
     const tbody = document.createElement('tbody');
 
     const headerRow = document.createElement('tr');
-    ['workerid', 'Correct', 'Incorrecte', 'Total ASIN traité', 'Accuracy (%)', 'Error Rate (%)'].forEach(text => {
+    [
+        'Years', 'Months', 'Weeks', 'Date', 'Index',
+        'workerid', 'Correct', 'Incorrecte',
+        'Total ASIN traité', 'Accuracy (%)', 'Error Rate (%)'
+    ].forEach(text => {
         const th = document.createElement('th');
         th.textContent = text;
         headerRow.appendChild(th);
@@ -1016,7 +1071,11 @@ function calculateAccuracyWorkerID() {
         const errorRate = totalASIN > 0 ? formatPercentage((summary.Incorrect / totalASIN) * 100) : '0,00%';
 
         const row = document.createElement('tr');
-        [workerid, summary.Correct, summary.Incorrect, formatTotal(totalASIN), accuracy, errorRate].forEach(text => {
+        [
+            yearStr, monthStr, weekNum, formattedDate, indexValue,
+            workerid, summary.Correct, summary.Incorrect,
+            formatTotal(totalASIN), accuracy, errorRate
+        ].forEach(text => {
             const td = document.createElement('td');
             td.textContent = text;
             row.appendChild(td);
@@ -1031,7 +1090,11 @@ function calculateAccuracyWorkerID() {
     const overallErrorRate = totalASIN > 0 ? formatPercentage((totalIncorrect / totalASIN) * 100) : '0,00%';
 
     const footerRow = document.createElement('tr');
-    ['Total général', formatTotal(totalCorrect), formatTotal(totalIncorrect), formatTotal(totalASIN), overallAccuracy, overallErrorRate].forEach(text => {
+    [
+        "", "", "", "", "",
+        'Total général', formatTotal(totalCorrect), formatTotal(totalIncorrect),
+        formatTotal(totalASIN), overallAccuracy, overallErrorRate
+    ].forEach(text => {
         const td = document.createElement('td');
         td.textContent = text;
         footerRow.appendChild(td);
@@ -1040,7 +1103,16 @@ function calculateAccuracyWorkerID() {
 
     table.appendChild(thead);
     table.appendChild(tbody);
+
+    function formatPercentage(val) {
+        return val.toFixed(2).replace('.', ',') + '%';
+    }
+
+    function formatTotal(val) {
+        return val.toString();
+    }
 }
+
 
 
 // Ensure the caption is visible with CSS
@@ -1283,7 +1355,9 @@ function DetailedAttributConsensus() {
     const grandTotal = grandTotalCorrectMajority + grandTotalCorrectMinority + grandTotalIncorrectMajority + grandTotalIncorrectMinority;
 
     const dateInput = document.getElementById('picking_day');
-    let weekNum = '', monthStr = '', formattedDate = '';
+    const indexInput = document.getElementById('picking_index');
+    let yearStr = '', weekNum = '', monthStr = '', formattedDate = '', indexValue = '';
+
     if (dateInput && dateInput.value) {
         const selectedDate = new Date(dateInput.value);
         const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
@@ -1293,6 +1367,11 @@ function DetailedAttributConsensus() {
         const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
         monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
+        yearStr = selectedDate.getFullYear().toString();
+    }
+
+    if (indexInput && indexInput.value) {
+        indexValue = indexInput.value;
     }
 
     const detailedTable = document.getElementById('consensusAttributDetailed');
@@ -1300,7 +1379,7 @@ function DetailedAttributConsensus() {
 
     const headerRowNew = detailedTable.insertRow();
     const newHeaders = [
-        'Weeks', 'Months', 'Date', 'Attributs',
+        'Years', 'Months', 'Weeks', 'Date', 'Index', 'Attributs',
         'Correct Majority', 'Taux %',
         'Correct Minority', 'Taux %',
         'Incorrect Majority', 'Taux %',
@@ -1314,7 +1393,6 @@ function DetailedAttributConsensus() {
         headerRowNew.appendChild(cell);
     });
 
-    // Attributs à ne pas afficher si vides
     const excludedEmptyAttributes = [
         "cannxxxot_judge",
         "exacxxxxt_match",
@@ -1326,13 +1404,14 @@ function DetailedAttributConsensus() {
         const data = attributes[attr];
         const total = data.correctMajority + data.correctMinority + data.incorrectMajority + data.incorrectMinority;
 
-        // Ne pas afficher les attributs exclus si total == 0
         if (excludedEmptyAttributes.includes(attr) && total === 0) return;
 
         const row = detailedTable.insertRow();
+        row.insertCell().textContent = yearStr;
+		row.insertCell().textContent = monthStr;
         row.insertCell().textContent = weekNum;
-        row.insertCell().textContent = monthStr;
         row.insertCell().textContent = formattedDate;
+        row.insertCell().textContent = indexValue;
         row.insertCell().textContent = attr;
 
         row.insertCell().textContent = data.correctMajority;
@@ -1350,9 +1429,11 @@ function DetailedAttributConsensus() {
     });
 
     const totalRow = detailedTable.insertRow();
-    totalRow.insertCell().textContent = weekNum;
-    totalRow.insertCell().textContent = monthStr;
-    totalRow.insertCell().textContent = formattedDate;
+    totalRow.insertCell().textContent = "";
+    totalRow.insertCell().textContent = "";
+    totalRow.insertCell().textContent = "";
+    totalRow.insertCell().textContent = "";
+    totalRow.insertCell().textContent = "";
     totalRow.insertCell().textContent = 'Total';
 
     totalRow.insertCell().textContent = grandTotalCorrectMajority;
@@ -1371,6 +1452,8 @@ function DetailedAttributConsensus() {
         return ((n * 100) / d).toFixed(2).replace('.', ',') + '%';
     }
 }
+
+
 
 
 
@@ -1792,7 +1875,6 @@ function showTablePair(tableId1, tableId2) {
     }
 }
 
-//FONCTION GENERATE BRUTE DE DETAILS
 function extraire_brut() {
     const table = document.getElementById("resultTable");
     const rows = table.querySelectorAll("tr");
@@ -1800,20 +1882,29 @@ function extraire_brut() {
 
     const header = Array.from(rows[0].cells).map(cell => cell.textContent.trim());
 
-    // Lire la date depuis le datepicker
     const dateInput = document.getElementById('picking_day');
-    let weekNum = '', formattedDate = '';
+    const indexInput = document.getElementById('picking_index');
+    let weekNum = '', formattedDate = '', yearStr = '', monthStr = '', indexValue = '';
+
     if (dateInput && dateInput.value) {
         const selectedDate = new Date(dateInput.value);
         const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
         const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
         weekNum = Math.ceil(dayDiff / 7);
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
+        yearStr = selectedDate.getFullYear();
+
+        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const monthName = months[selectedDate.getMonth()];
+        monthStr = `${monthName}-${yearStr}`;
+    }
+
+    if (indexInput && indexInput.value) {
+        indexValue = indexInput.value;
     }
 
     const workerIndex = header.indexOf("workerid");
 
-    // Colonnes à partir de la 9e (index 8) jusqu'à la fin
     const excluded = [
         "Jugement ASIN", "Jugement Assignement", "Jugement HitId",
         "cannxxxot_judge", "irrexxxxlevant", "possixxxxble_substitute", "exacxxxxt_match"
@@ -1855,10 +1946,12 @@ function extraire_brut() {
         });
 
         const row = [
-            weekNum,                                // Weeks
-            new Date(dateInput.value).getMonth() + 1, // Months
-            formattedDate,                          // Date-prod
-            workerId,
+            yearStr,        // Years
+            monthStr,       // Months (ex: "juillet-2025")
+            weekNum,        // Weeks
+            formattedDate,  // Date-prod
+            indexValue,     // Index
+            workerId,       // workerid
             c_maj,
             c_min,
             i_maj,
@@ -1871,7 +1964,7 @@ function extraire_brut() {
     }
 
     const finalHeader = [
-        "Weeks", "Months", "Date-prod", "workerid",
+        "Years", "Months", "Weeks", "Date-prod", "Index", "workerid",
         "Correct majority", "Correct minority",
         "Incorrect majority", "Incorrect minority",
         "somme answer",
@@ -1880,7 +1973,6 @@ function extraire_brut() {
 
     error_brut.unshift(finalHeader);
 
-    // AFFICHAGE DANS LA TABLE HTML id="error_table"
     const tableError = document.getElementById("error_table");
     tableError.innerHTML = "";
 
@@ -1890,8 +1982,7 @@ function extraire_brut() {
             const cell = document.createElement(rowIndex === 0 ? "th" : "td");
             cell.textContent = cellText;
 
-            // Appliquer le centrage sauf pour les 4 premiers colonnes
-            if (cellIndex >= 4) {
+            if (cellIndex >= 6) {
                 cell.style.textAlign = "center";
             }
 
@@ -1902,6 +1993,8 @@ function extraire_brut() {
 
     return error_brut;
 }
+
+
 
 
 
@@ -1925,6 +2018,23 @@ document.getElementById('exportButton').addEventListener('click', function() {
         a.click();
         URL.revokeObjectURL(url);
     });
+	
+	
+// DATE -01
+
+window.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('picking_day');
+    if (input) {
+      const now = new Date();
+      now.setDate(now.getDate() - 1); // J-1
+
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0'); // Mois (01-12)
+      const dd = String(now.getDate()).padStart(2, '0');      // Jour (01-31)
+
+      input.value = `${yyyy}-${mm}-${dd}`;
+    }
+  });
 </script>
 </body>
 </html>
