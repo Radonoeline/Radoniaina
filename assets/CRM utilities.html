@@ -1929,21 +1929,25 @@ function extraire_brut() {
         const countByAttr = new Array(errorHeaders.length).fill(0);
 
         lignes.forEach(cells => {
-            errorIndexes.forEach((colIdx, j) => {
-                const val = cells[colIdx]?.textContent.trim();
-                if (!val) return;
+			errorIndexes.forEach((colIdx, j) => {
+				const val = cells[colIdx]?.textContent.trim();
+				if (!val) return;
 
-                if (val === "c_maj") c_maj++;
-                else if (val === "c_min") c_min++;
-                else if (val === "i_maj" || val === "missing_maj") i_maj++;
-                else if (val === "i_min" || val === "missing_min") i_min++;
+				if (val === "c_maj") c_maj++;
+				else if (val === "c_min") c_min++;
+				else if (val === "i_maj" || val === "missing_maj") i_maj++;
+				else if (val === "i_min" || val === "missing_min") i_min++;
 
-                if (["i_maj", "i_min", "missing_maj", "missing_min"].includes(val)) {
-                    countByAttr[j]++;
-                    somme++;
-                }
-            });
-        });
+				if (["i_maj", "i_min", "missing_maj", "missing_min"].includes(val)) {
+					countByAttr[j]++;
+				}
+
+				if (["c_maj", "c_min", "i_maj", "i_min", "missing_maj", "missing_min"].includes(val)) {
+					somme++;
+				}
+			});
+		});
+
 
         const row = [
             yearStr,        // Years
