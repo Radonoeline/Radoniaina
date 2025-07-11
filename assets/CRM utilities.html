@@ -20,7 +20,7 @@
             position: fixed;
             top: 0;
             width: 100%;
-            background-color: #f8f8f8;
+
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             z-index: 1000;
@@ -124,126 +124,181 @@
     border: 1px solid #ccc;
 }
 
+
+#layoutContainer {
+    display: flex;
+    flex-direction: row;
+    margin-top: 100px; /* laisse la place au header */
+}
+
+#sidebar {
+    width: 320px;
+    background-color: #222;
+    color: white;
+    padding: 15px;
+    height: calc(100vh - 100px); /* plein écran - header */
+    overflow-y: auto;
+    position: sticky;
+    top: 100px;
+}
+
+#sidebar label, 
+#sidebar select, 
+#sidebar input, 
+#sidebar button {
+    display: block;
+    margin-bottom: 10px;
+    width: 100%;
+    font-size: 13px;
+}
+
+#sidebar button {
+    background-color: #444;
+}
+
+#contentArea {
+    flex: 1;
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.main-content {
+    margin-top: 0 !important; /* car c'est déjà géré via #layoutContainer */
+}
     </style>
 </head>
 <body>
     <header>
         <h1>Utilitaire Rapport Mensuel</h1>
-        <div id="safidy" style="background-color: black; color: white; padding: 10px; border-radius: 5px;">
-		<label for="dataType">Détails ASIN ou TSV:</label>
-		<select id="dataSource">
-			<option value="detailAsin">Copie-Coller Details-ASIN</option>
-			<option value="tsv_file">Fichier Compilé TSV</option>
-		</select>
-		<label for="indexType">Index:</label>
-		<select id="indextype">
-			<option value="camera_search">CS</option>
-			<option value="camera_search_irr">CS IRR</option>			
-			<option value="furniture">FURNITURE</option> 
-			<option value="furniture_irr">FURNITURE IRR</option>
-		</select>
-		<label for="picking_day">Sélectionner une date :</label>
-		<input type="date" id="picking_day" />
-		<label for="picking_index">Sélectionner une Index :</label>
-		<select id="picking_index">
-		  <option value="AIN-LMR-CAUI">AIN-LMR-CAUI</option>
-		  <option value="AIN-LMR-COUI">AIN-LMR-COUI</option>
-		  <option value="AIN-LMR-CBUI">AIN-LMR-CBUI</option>
-		  <option value="AIN-LMR-CBUI2">AIN-LMR-CBUI2</option>
-		  <option value="AIN-LMR-CODE">AIN-LMR-CODE</option>
-		  <option value="AIN-LMR-CADE">AIN-LMR-CADE</option>
-		  <option value="AIN-LMR-FAUI">AIN-LMR-FAUI</option>
-		  <option value="AIN-LMR-FOUI">AIN-LMR-FOUI</option>
-		  <option value="AIN-LMR-FBUI">AIN-LMR-FBUI</option>
-		  <option value="AIN-LMR-FBUI2">AIN-LMR-FBUI2</option>
-		  <option value="AIN-LMR-FADE">AIN-LMR-FADE</option>
-		  <option value="AIN-MTM-IRR">AIN-MTM-IRR</option>
-		</select>
-
-		<div id="textAreaContainer" style="display: none;">
-		<textarea id="dataAsin-data" rows="10" cols="50" placeholder="Collez ici les détails ASIN..."></textarea>
-		</div>
-		<div id="notification" class="notification">
-		Traitement terminé ! La table "resultTable" a été créée.
-		</div>
-		<div id="fileInputa">
-        <input type="file" id="fileInput" class="file-input" accept=".tsv">
-		</div>
-		<div id="textAreaContainer" style="display: none;">
-		<textarea id="dataAsin-data" rows="10" cols="50" placeholder="Collez ici les détails ASIN..."></textarea>
-		</div>
-		<button id="Doit">Lancer le Process</button>
-		<button onclick="DetailedAttributConsensus()">Consensus par Attribut</button>
-            <button onclick="calculateConsensusWorker()">Consensus par WorkerID</button>
-            <button onclick="calculateAccuracyWorkerID()">Accuracy WorkerID</button>
-			<button onclick="extraire_brut()">BRUT</button>
-			<button onClick="generateTable()">Erreurs Attributs/WorkerID</button>
-            <button onclick="executeBoth()">Agréement/Résumé</button>
-			<button id="extract_data">Score Globale</button>
-			
-			<button id="exportButton">Exporter Fichier Brute</button>
-		</div>
     </header>
 
-    <div class="main-content" id="result">
-    <div class="table-pair">
-    <table id="CRJ_Table1" class="hidden">
-        <tr>
-            <th>Assignment échantillonné</th>
-            <th>Taux d'erreurs</th>
-            <th>Assignment KO</th>
-            <th>Détail</th>
-        </tr>
-    </table>
+    <div id="layoutContainer">
+        <!-- Barre latérale gauche -->
+        <div id="sidebar">
+            <div id="safidy">
+                <label for="dataType">Détails ASIN ou TSV:</label>
+                <select id="dataSource">
+                    <option value="detailAsin">Copie-Coller Details-ASIN</option>
+                    <option value="tsv_file">Fichier Compilé TSV</option>
+                </select>
 
-    <table id="CRJ_Table2" class="hidden">
-        <tr>
-            <th>HIT contrôlé</th>
-            <th>HIT KO</th>
-            <th>CORRECT_MAJORITY</th>
-            <th>CORRECT_MINORITY</th>
-            <th>INCORRECT_MAJORITY</th>
-            <th>INCORRECT_MINORITY</th>
-        </tr>
-    </table>
-</div>
+                <label for="indexType">Index:</label>
+                <select id="indextype">
+                    <option value="camera_search">CS</option>
+                    <option value="camera_search_irr">CS IRR</option>			
+                    <option value="furniture">FURNITURE</option> 
+                    <option value="furniture_irr">FURNITURE IRR</option>
+                </select>
 
-<div class="table-pair">
-    <table id="agreementTable" class="hidden"></table>
-    <table id="summaryTable" class="hidden"></table>
-</div>
+                <label for="picking_day">Sélectionner une date :</label>
+                <input type="date" id="picking_day" />
 
-<table id="accuracyWorkerID" class="hidden"></table>
-<table id="consensusWorkerID" class="hidden"></table>
-<table id="consensusAttributDetailed" class="hidden"></table>
-<table id="Nb_Erreurs_WorkerID" class="hidden">
-    <tr id="headerRow"></tr>
-</table>
-<table id="resultTable"></table>
-<table id="error_table"  class="hidden"></table>
+                <label for="picking_index">Sélectionner une Index :</label>
+                <select id="picking_index">
+                    <option value="AIN-LMR-CAUI">AIN-LMR-CAUI</option>
+                    <option value="AIN-LMR-COUI">AIN-LMR-COUI</option>
+                    <option value="AIN-LMR-CBUI">AIN-LMR-CBUI</option>
+                    <option value="AIN-LMR-CBUI2">AIN-LMR-CBUI2</option>
+                    <option value="AIN-LMR-CODE">AIN-LMR-CODE</option>
+                    <option value="AIN-LMR-CADE">AIN-LMR-CADE</option>
+                    <option value="AIN-LMR-FAUI">AIN-LMR-FAUI</option>
+                    <option value="AIN-LMR-FOUI">AIN-LMR-FOUI</option>
+                    <option value="AIN-LMR-FBUI">AIN-LMR-FBUI</option>
+                    <option value="AIN-LMR-FBUI2">AIN-LMR-FBUI2</option>
+                    <option value="AIN-LMR-FADE">AIN-LMR-FADE</option>
+                    <option value="AIN-MTM-IRR">AIN-MTM-IRR</option>
+                </select>
 
-</div>
+                <div id="fileInputs">
+                    <label for="fileInput">Fichier TSV A :</label>
+                    <input type="file" id="fileInput" class="file-input" accept=".tsv">
+                </div>
+
+                <div id="textAreaContainer" style="display: none;">
+					<label for="dataAsin-data">Détails ASIN :</label>
+					<textarea id="dataAsin-data" rows="10" placeholder="Collez ici les détails ASIN..."></textarea>
+				</div>
+
+                <button id="Doit">Lancer le Process</button>
+                <button onclick="DetailedAttributConsensus()">Consensus par Attribut</button>
+                <button onclick="calculateConsensusWorker()">Consensus par WorkerID</button>
+                <button onclick="calculateAccuracyWorkerID()">Accuracy WorkerID</button>
+                <button onclick="extraire_brut()">BRUT</button>
+                <button onClick="generateTable()">Erreurs Attributs/WorkerID</button>
+                <button onclick="executeBoth()">Agréement/Résumé</button>
+                <button id="extract_data">Score Globale</button>
+                <button id="exportButton">Exporter Fichier Brute</button>
+
+                <div id="notification" class="notification">
+                    Traitement terminé ! La table "resultTable" a été créée.
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone des tableaux -->
+        <div id="contentArea">
+            <div class="main-content" id="result">
+                <div class="table-pair">
+                    <table id="CRJ_Table1" class="hidden">
+                        <tr>
+                            <th>Assignment échantillonné</th>
+                            <th>Taux d'erreurs</th>
+                            <th>Assignment KO</th>
+                            <th>Détail</th>
+                        </tr>
+                    </table>
+
+                    <table id="CRJ_Table2" class="hidden">
+                        <tr>
+                            <th>HIT contrôlé</th>
+                            <th>HIT KO</th>
+                            <th>CORRECT_MAJORITY</th>
+                            <th>CORRECT_MINORITY</th>
+                            <th>INCORRECT_MAJORITY</th>
+                            <th>INCORRECT_MINORITY</th>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="table-pair">
+                    <table id="agreementTable" class="hidden"></table>
+                    <table id="summaryTable" class="hidden"></table>
+                </div>
+
+                <table id="accuracyWorkerID" class="hidden"></table>
+                <table id="consensusWorkerID" class="hidden"></table>
+                <table id="consensusAttributDetailed" class="hidden"></table>
+                <table id="Nb_Erreurs_WorkerID" class="hidden">
+                    <tr id="headerRow"></tr>
+                </table>
+                <table id="resultTable"></table>
+                <table id="error_table" class="hidden"></table>
+            </div>
+        </div>
+    </div>
+</body>
+
 
 <script>
-//action suivant le type de données collée ou importé
+// action suivant le type de données collée ou importée
 document.getElementById('dataSource').addEventListener('change', function () {
-        const selectedValue = this.value;
-        const fileInputDiv = document.getElementById('fileInputa');
-        const textAreaDiv = document.getElementById('textAreaContainer');
+    const selectedValue = this.value;
+    const fileInputDiv = document.getElementById('fileInputs');
+    const textAreaDiv = document.getElementById('textAreaContainer');
 
-        if (selectedValue === 'detailAsin') {
-            fileInputDiv.style.display = 'none';
-            textAreaDiv.style.display = 'block';
-        } else if (selectedValue === 'tsv_file') {
-            fileInputDiv.style.display = 'block';
-            textAreaDiv.style.display = 'none';
-        }
-    });
+    if (selectedValue === 'detailAsin') {
+        fileInputDiv.style.display = 'none';
+        textAreaDiv.style.display = 'block';
+    } else if (selectedValue === 'tsv_file') {
+        fileInputDiv.style.display = 'block';
+        textAreaDiv.style.display = 'none';
+    }
+});
 
-    // Exécution au chargement pour appliquer l'état initial selon l'option sélectionnée par défaut
-    window.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('dataSource').dispatchEvent(new Event('change'));
-    });		
+// Exécution au chargement pour appliquer l'état initial selon l'option sélectionnée par défaut
+window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('dataSource').dispatchEvent(new Event('change'));
+});
 
 
 // Action du bouton "Doit"
@@ -308,7 +363,10 @@ function processDataDaily(data) {
         preview: 500000,
         complete: function (results) {
             const parsedData = results.data;
-            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
+			window.annotatedResultData = parsedData;
+			console.log("✅ Données chargées (annotatedResultData) :");
+			console.log(window.annotatedResultData.map(d => ({ key: d.key, comment: d.Comment })));
+            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json', 'Comment'];
             const headersFromData = results.meta.fields.map(header => header.trim().toLowerCase());
             const normalizedNecessaryHeaders = necessaryHeaders.map(header => header.trim().toLowerCase());
             const headersPresent = normalizedNecessaryHeaders.every(header => headersFromData.includes(header));
@@ -383,6 +441,10 @@ function processDataDaily(data) {
             const hitJudgmentHeader = document.createElement('th');
             hitJudgmentHeader.textContent = 'Jugement HitId';
             headerRow.appendChild(hitJudgmentHeader);
+			
+			const commentaireHeader = document.createElement('th');
+			commentaireHeader.textContent = 'Commentaires';
+			headerRow.appendChild(commentaireHeader);
 
             parsedData.forEach(row => {
                 const assinJson = row.assin_json.split(',');
@@ -410,6 +472,9 @@ function processDataDaily(data) {
 
                 const hitJudgmentCell = rowElement.insertCell();
                 hitJudgmentCell.textContent = '';
+				
+				const commentaireCell = rowElement.insertCell();
+				commentaireCell.textContent = row['Comment'] || '';
             });
 
             const groupedByKey = parsedData.reduce((acc, row, index) => {
@@ -555,7 +620,8 @@ function processDataDailyFromTextarea() {
         preview: 500000,
         complete: function (results) {
             const parsedData = results.data;
-            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
+			window.annotatedResultData = parsedData;
+            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json', 'Comment'];
             const headersFromData = results.meta.fields.map(header => header.trim().toLowerCase());
             const normalizedNecessaryHeaders = necessaryHeaders.map(header => header.trim().toLowerCase());
             const headersPresent = normalizedNecessaryHeaders.every(header => headersFromData.includes(header));
@@ -631,6 +697,10 @@ function processDataDailyFromTextarea() {
             const hitJudgmentHeader = document.createElement('th');
             hitJudgmentHeader.textContent = 'Jugement HitId';
             headerRow.appendChild(hitJudgmentHeader);
+			
+			const commentaireHeader = document.createElement('th');
+			commentaireHeader.textContent = 'Commentaires';
+			headerRow.appendChild(commentaireHeader);
 
             parsedData.forEach(row => {
                 const assinJson = row.assin_json.split(',');
@@ -658,6 +728,9 @@ function processDataDailyFromTextarea() {
 
                 const hitJudgmentCell = rowElement.insertCell();
                 hitJudgmentCell.textContent = '';
+				
+				const commentaireCell = rowElement.insertCell();
+				commentaireCell.textContent = row['Comment'] || '';
             });
 
             const groupedByKey = parsedData.reduce((acc, row, index) => {
@@ -966,8 +1039,6 @@ function calculateConsensusWorker() {
         return Number.isInteger(val) ? val : Math.round(val);
     }
 }
-
-
 
 
 
@@ -1456,12 +1527,6 @@ function DetailedAttributConsensus() {
 
 
 
-
-
-
-
-
-
 // Fonction pour copier le contenu d'une table dans le presse-papiers
 async function copyTableToClipboard(table) {
     if (!table) {
@@ -1794,14 +1859,6 @@ function generateTable() {
 
 
 
-
-
-
-
-
-
-
-
 // Fonction pour masquer toutes les tables et afficher seulement celle spécifiée
 function showTable(tableId) {
     // Masquer toutes les tables
@@ -2039,6 +2096,9 @@ window.addEventListener('DOMContentLoaded', () => {
       input.value = `${yyyy}-${mm}-${dd}`;
     }
   });
+  
+  
+
+
 </script>
-</body>
 </html>
