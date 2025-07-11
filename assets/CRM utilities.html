@@ -366,7 +366,7 @@ function processDataDaily(data) {
 			window.annotatedResultData = parsedData;
 			console.log("✅ Données chargées (annotatedResultData) :");
 			console.log(window.annotatedResultData.map(d => ({ key: d.key, comment: d.Comment })));
-            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json', 'Comment'];
+            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
             const headersFromData = results.meta.fields.map(header => header.trim().toLowerCase());
             const normalizedNecessaryHeaders = necessaryHeaders.map(header => header.trim().toLowerCase());
             const headersPresent = normalizedNecessaryHeaders.every(header => headersFromData.includes(header));
@@ -396,8 +396,8 @@ function processDataDaily(data) {
                 ];
             } else if (selectedIndexType === 'furniture') {
                 explicitAttributes = [
-                    'asin_image_not_load', 'canxxxnot_judge', 'color', 'design', 'exacxxxxt_match', 'extra_features',
-                    'irrexxxlevant', 'location', 'material', 'no_difference', 'pattern', 'possxxxible_substitute', 'shape',
+                    'asin_image_not_load', 'cannxxxot_judge', 'color', 'design', 'exacxxxxt_match', 'extra_features',
+                    'irrexxxxlevant', 'location', 'material', 'no_difference', 'pattern', 'possixxxxble_substitute', 'shape',
                     'size', 'support_type', 'surface_placement', 'wrong_age_group', 'wrong_category'
                 ];
             } else if (selectedIndexType === 'camera_search_irr') {
@@ -442,9 +442,6 @@ function processDataDaily(data) {
             hitJudgmentHeader.textContent = 'Jugement HitId';
             headerRow.appendChild(hitJudgmentHeader);
 			
-			const commentaireHeader = document.createElement('th');
-			commentaireHeader.textContent = 'Commentaires';
-			headerRow.appendChild(commentaireHeader);
 
             parsedData.forEach(row => {
                 const assinJson = row.assin_json.split(',');
@@ -473,8 +470,6 @@ function processDataDaily(data) {
                 const hitJudgmentCell = rowElement.insertCell();
                 hitJudgmentCell.textContent = '';
 				
-				const commentaireCell = rowElement.insertCell();
-				commentaireCell.textContent = row['Comment'] || '';
             });
 
             const groupedByKey = parsedData.reduce((acc, row, index) => {
@@ -651,8 +646,8 @@ function processDataDailyFromTextarea() {
                 ];
             } else if (selectedIndexType === 'furniture') {
                 explicitAttributes = [
-                    'asin_image_not_load', 'canxxxnot_judge', 'color', 'design', 'exacxxxxt_match', 'extra_features',
-                    'irrexxxlevant', 'location', 'material', 'no_difference', 'pattern', 'possxxxible_substitute', 'shape',
+                    'asin_image_not_load', 'cannxxxot_judge', 'color', 'design', 'exacxxxxt_match', 'extra_features',
+                    'irrexxxxlevant', 'location', 'material', 'no_difference', 'pattern', 'possixxxxble_substitute', 'shape',
                     'size', 'support_type', 'surface_placement', 'wrong_age_group', 'wrong_category'
                 ];
             } else if (selectedIndexType === 'camera_search_irr') {
@@ -665,8 +660,7 @@ function processDataDailyFromTextarea() {
                 explicitAttributes = [
                     'asin_image_not_load', 'cannot_judge', 'color', 'design', 'exact_match', 'extra_features',
                     'irrelevant', 'location', 'material', 'no_difference', 'pattern', 'possible_substitute', 'shape',
-                    'size', 'support_type', 'surface_placement', 'wrong_age_group', 'wrong_category', 'exact_match', 'cannot_judge', 'possible_substitute', 'irrelevant'
-                ];
+                    'size', 'support_type', 'surface_placement', 'wrong_age_group', 'wrong_category'];
             }
 
             const sortedUniqueKeys = explicitAttributes.sort((a, b) => a.localeCompare(b));
@@ -698,9 +692,6 @@ function processDataDailyFromTextarea() {
             hitJudgmentHeader.textContent = 'Jugement HitId';
             headerRow.appendChild(hitJudgmentHeader);
 			
-			const commentaireHeader = document.createElement('th');
-			commentaireHeader.textContent = 'Commentaires';
-			headerRow.appendChild(commentaireHeader);
 
             parsedData.forEach(row => {
                 const assinJson = row.assin_json.split(',');
@@ -729,8 +720,6 @@ function processDataDailyFromTextarea() {
                 const hitJudgmentCell = rowElement.insertCell();
                 hitJudgmentCell.textContent = '';
 				
-				const commentaireCell = rowElement.insertCell();
-				commentaireCell.textContent = row['Comment'] || '';
             });
 
             const groupedByKey = parsedData.reduce((acc, row, index) => {
@@ -1964,7 +1953,7 @@ function extraire_brut() {
 
     const excluded = [
         "Jugement ASIN", "Jugement Assignement", "Jugement HitId",
-        "cannxxxot_judge", "irrexxxxlevant", "possixxxxble_substitute", "exacxxxxt_match"
+        "cannxxxot_judge", "irrexxxxlevant", "possixxxxble_substitute", "exacxxxxt_match", "juge"
     ];
     const errorHeaders = header.slice(8).filter(h => !excluded.includes(h));
     const errorIndexes = errorHeaders.map(h => header.indexOf(h));
@@ -2000,6 +1989,7 @@ function extraire_brut() {
 				}
 
 				if (["c_maj", "c_min", "i_maj", "i_min", "missing_maj", "missing_min"].includes(val)) {
+				
 					somme++;
 				}
 			});
