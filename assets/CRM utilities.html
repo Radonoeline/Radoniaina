@@ -28,6 +28,7 @@
         h1 {
             margin: 0;
             font-size: 24px;
+			color:White;
         }
         .file-input-label {
             margin-right: 10px;
@@ -132,9 +133,10 @@
 }
 
 #sidebar {
-    width: 320px;
+    width: 290px;
     background-color: #222;
     color: white;
+	
     padding: 15px;
     height: calc(100vh - 100px); /* plein écran - header */
     overflow-y: auto;
@@ -142,10 +144,10 @@
     top: 100px;
 }
 
-#sidebar label, 
-#sidebar select, 
-#sidebar input, 
-#sidebar button {
+#sidebar label:not(#radioContainer label),
+#sidebar select:not(#radioContainer select),
+#sidebar input:not(#radioContainer input),
+#sidebar button:not(#radioContainer button) {
     display: block;
     margin-bottom: 10px;
     width: 100%;
@@ -165,13 +167,83 @@
 .main-content {
     margin-top: 0 !important; /* car c'est déjà géré via #layoutContainer */
 }
+
+#radioContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0px;
+    padding: 0px;
+    white-space: nowrap;
+
+  #radioContainer label {
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    color: white;
+    cursor: pointer;
+  }
+
+  #radioContainer input[type="radio"] {
+    margin-right: 10px;
+    accent-color: #007BFF; /* Bleu clair pour le bouton coché, supporté par Chrome/Edge/Firefox */
+  }
+
+  body {
+    background-color: #1e1e1e; /* Pour test sur fond noir */
+    font-family: sans-serif;
+  }
+  
+  
+  
+  #progressOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8); /* fond semi-transparent */
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  #progressBox {
+    text-align: center;
+    color: white;
+    font-size: 2em;
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  #progressBox .icon {
+    font-size: 3em;
+    margin-bottom: 10px;
+    animation: pulse 1.2s infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
     </style>
 </head>
 <body>
     <header>
         <h1>Utilitaire Rapport Mensuel</h1>
     </header>
-
+<div id="progressOverlay">
+  <div id="progressBox">
+    <div class="icon">⏳</div>
+    <div id="progressText">Traitement en cours... 0%</div>
+  </div>
+</div>
     <div id="layoutContainer">
         <!-- Barre latérale gauche -->
         <div id="sidebar">
@@ -183,13 +255,12 @@
                 </select>
 
                 <label for="indexType">Index:</label>
-                <select id="indextype">
-                    <option value="camera_search">CS</option>
-                    <option value="camera_search_irr">CS IRR</option>			
-                    <option value="furniture">FURNITURE</option> 
-                    <option value="furniture_irr">FURNITURE IRR</option>
-                </select>
-
+					<select id="indextype">
+						<option value="camera_search">MR CS</option>
+						<option value="camera_search_irr">MR CS IRR</option>			
+						<option value="furniture">MR FURNITURE</option> 
+						<option value="furniture_irr">MR FURNITURE IRR</option>
+					</select>
                 <label for="picking_day">Sélectionner une date :</label>
                 <input type="date" id="picking_day" />
 
@@ -210,7 +281,7 @@
                 </select>
 
                 <div id="fileInputs">
-                    <label for="fileInput">Fichier TSV A :</label>
+                    <label for="fileInput">Fichier TSV du Détails ASIN:</label>
                     <input type="file" id="fileInput" class="file-input" accept=".tsv">
                 </div>
 
@@ -220,14 +291,19 @@
 				</div>
 
                 <button id="Doit">Lancer le Process</button>
-                <button onclick="DetailedAttributConsensus()">Consensus par Attribut</button>
-                <button onclick="calculateConsensusWorker()">Consensus par WorkerID</button>
-                <button onclick="calculateAccuracyWorkerID()">Accuracy WorkerID</button>
-                <button onclick="extraire_brut()">BRUT</button>
-                <button onClick="generateTable()">Erreurs Attributs/WorkerID</button>
-                <button onclick="executeBoth()">Agréement/Résumé</button>
-                <button id="extract_data">Score Globale</button>
+				<div id="radioContainer">
+				  <label><input type="radio" name="tableSelector" value="consensusAttributDetailed">Consensus par Attribut</label>
+				  <label><input type="radio" name="tableSelector" value="consensusWorkerID">Consensus par WorkerID</label>
+				  <label><input type="radio" name="tableSelector" value="accuracyWorkerID">Accuracy WorkerID</label>
+				  <label><input type="radio" name="tableSelector" value="error_table">Erreurs BRUTES</label>
+				  <label><input type="radio" name="tableSelector" value="Nb_Erreurs_WorkerID">Erreurs Attributs/WorkerID</label>
+				  <label><input type="radio" name="tableSelector" value="agreementTable_summaryTable">Agréement/Résumé</label>
+				  <label><input type="radio" name="tableSelector" value="CRJ_Table1_CRJ_Table2">Score Globale</label>
+				</div>
+				
+                
                 <button id="exportButton">Exporter Fichier Brute</button>
+				
 
                 <div id="notification" class="notification">
                     Traitement terminé ! La table "resultTable" a été créée.
@@ -323,7 +399,7 @@ document.getElementById('Doit').addEventListener('click', function () {
             return;
         }
 
-        console.log('Zone de texte ASIN sélectionnée');
+        //console.log('Zone de texte ASIN sélectionnée');
         // TODO: Ajouter votre traitement ici
         // Exemple : processAsinText(asinText);
 		processDataDailyFromTextarea();
@@ -338,7 +414,7 @@ document.getElementById('Doit').addEventListener('click', function () {
             reader.onload = function (e) {
                 const content = e.target.result;
                 processDataDaily(content);
-                console.log('Traitement du fichier TSV lancé');
+                //console.log('Traitement du fichier TSV lancé');
             };
 
             reader.readAsText(file);
@@ -364,8 +440,8 @@ function processDataDaily(data) {
         complete: function (results) {
             const parsedData = results.data;
 			window.annotatedResultData = parsedData;
-			console.log("✅ Données chargées (annotatedResultData) :");
-			console.log(window.annotatedResultData.map(d => ({ key: d.key, comment: d.Comment })));
+			//console.log("✅ Données chargées (annotatedResultData) :");
+			//console.log(window.annotatedResultData.map(d => ({ key: d.key, comment: d.Comment })));
             const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
             const headersFromData = results.meta.fields.map(header => header.trim().toLowerCase());
             const normalizedNecessaryHeaders = necessaryHeaders.map(header => header.trim().toLowerCase());
@@ -591,14 +667,15 @@ function processDataDaily(data) {
                 });
             });
 
-            const notification = document.getElementById('notification');
-			notification.textContent = 'Le traitement des données est terminé.';
-			notification.style.display = 'block';
+            //const notification = document.getElementById('notification');
+			//notification.textContent = 'Le traitement des données est terminé.';
+			//notification.style.display = 'block';
 
 			// Disparaît après 5 secondes (5000 millisecondes)
-			setTimeout(() => {
-				notification.style.display = 'none';
-			}, 3000);
+			//setTimeout(() => {
+			//	notification.style.display = 'none';
+			//}, 3000);
+			lancerTraitementAutomatique();
         }
     });
 }
@@ -616,7 +693,7 @@ function processDataDailyFromTextarea() {
         complete: function (results) {
             const parsedData = results.data;
 			window.annotatedResultData = parsedData;
-            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json', 'Comment'];
+            const necessaryHeaders = ['hitid', 'AssignmentId', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
             const headersFromData = results.meta.fields.map(header => header.trim().toLowerCase());
             const normalizedNecessaryHeaders = necessaryHeaders.map(header => header.trim().toLowerCase());
             const headersPresent = normalizedNecessaryHeaders.every(header => headersFromData.includes(header));
@@ -840,15 +917,15 @@ function processDataDailyFromTextarea() {
                     hitJudgmentCell.textContent = hitJudgment;
                 });
             });
-
-            const notification = document.getElementById('notification');
-			notification.textContent = 'Le traitement des données est terminé.';
-			notification.style.display = 'block';
+			lancerTraitementAutomatique();
+            //const notification = document.getElementById('notification');
+			//notification.textContent = 'Le traitement des données est terminé.';
+			//notification.style.display = 'block';
 
 			// Disparaît après 5 secondes (5000 millisecondes)
-			setTimeout(() => {
-				notification.style.display = 'none';
-			}, 3000);
+			//setTimeout(() => {
+			//	notification.style.display = 'none';
+			//}, 3000);
         }
     });
 }
@@ -1555,7 +1632,7 @@ document.querySelectorAll('table').forEach(table => {
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-document.getElementById('extract_data').onclick = function() {
+function calculerScoreGlobale() {
     // Indexer les colonnes importantes
     const resultTable = document.getElementById('resultTable');
     const rows = resultTable.getElementsByTagName('tr');
@@ -1862,46 +1939,7 @@ function showTable(tableId) {
 }
 
 // Boutons pour afficher les tables spécifiques
-document.querySelector('button[onclick="DetailedAttributConsensus()"]').addEventListener('click', function() {
-    DetailedAttributConsensus();
-    showTable('consensusAttributDetailed');
-});
 
-document.querySelector('button[onclick="extraire_brut()"]').addEventListener('click', function() {
-    extraire_brut();
-    showTable('error_table');
-});
-
-document.querySelector('button[onclick="calculateConsensusWorker()"]').addEventListener('click', function() {
-    calculateConsensusWorker();
-    showTable('consensusWorkerID');
-});
-
-document.querySelector('button[onclick="calculateAccuracyWorkerID()"]').addEventListener('click', function() {
-    calculateAccuracyWorkerID();
-    showTable('accuracyWorkerID');
-});
-
-document.querySelector('button[onclick="executeBoth()"]').addEventListener('click', function() {
-    executeBoth();
-    showTable('agreementTable');
-    showTable('summaryTable');  // Afficher deux tables si nécessaire
-});
-
-document.querySelector('button[onclick="generateTable()"]').addEventListener('click', function() {
-    generateTable();
-    showTable('Nb_Erreurs_WorkerID');
-});
-
-document.getElementById('extract_data').addEventListener('click', function() {
-    // Afficher la paire de tables CRJ_Table1 et CRJ_Table2
-    showTablePair('CRJ_Table1', 'CRJ_Table2');
-});
-
-document.querySelector('button[onclick="executeBoth()"]').addEventListener('click', function() {
-    executeBoth();
-    showTablePair('agreementTable', 'summaryTable');
-});
 
 
 
@@ -2088,7 +2126,151 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   
   
+  
+  
+  
+// Liste des fonctions à appeler avec délai entre chaque
+const simulations = [
+    { action: () => DetailedAttributConsensus(), table: 'consensusAttributDetailed' },
+    { action: () => calculateConsensusWorker(), table: 'consensusWorkerID' },
+    { action: () => calculateAccuracyWorkerID(), table: 'accuracyWorkerID' },
+    { action: () => extraire_brut(), table: 'error_table' },
+    { action: () => generateTable(), table: 'Nb_Erreurs_WorkerID' },
+    { action: () => executeBoth(), table: ['agreementTable', 'summaryTable'] },
+    { action: () => calculerScoreGlobale(), table: ['CRJ_Table1', 'CRJ_Table2'] }
+];
 
+
+
+
+// Fonction principale pour les exécuter avec délai
+async function lancerTraitementAutomatique() {
+    const notification = document.getElementById('notification');
+    const overlay = document.getElementById('progressOverlay');
+    const progressText = document.getElementById('progressText');
+
+    overlay.style.display = 'flex'; // Afficher le centre de chargement
+    notification.style.display = 'none';
+
+    const total = simulations.length;
+
+    for (let i = 0; i < total; i++) {
+        simulations[i].action();
+
+        // Mettre à jour le pourcentage
+        const percent = Math.round(((i + 1) / total) * 100);
+        progressText.textContent = `Traitement en cours... ${percent}%`;
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // Fin du traitement
+    progressText.innerHTML = `<span class="icon">✅</span> Traitement terminé à 100%`;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    overlay.style.display = 'none';
+
+    // Affiche la notification finale
+    //notification.textContent = 'Le traitement des données est terminé.';
+    //notification.style.display = 'block';
+
+    //setTimeout(() => {
+    //    notification.style.display = 'none';
+    //}, 3000);
+}
+
+
+
+
+// Masquer toutes les tables d’un coup
+function hideAllTables() {
+    const tableIds = [
+        'consensusAttributDetailed',
+        'consensusWorkerID',
+        'accuracyWorkerID',
+        'error_table',
+        'Nb_Erreurs_WorkerID',
+        'agreementTable',
+        'summaryTable',
+        'CRJ_Table1',
+        'CRJ_Table2'
+    ];
+    tableIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
+
+// Affichage simple
+function showTable(id) {
+    hideAllTables();
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'table';
+}
+
+// Affichage double (paire de tableaux)
+function showTablePair(id1, id2) {
+    hideAllTables();
+    const el1 = document.getElementById(id1);
+    const el2 = document.getElementById(id2);
+    if (el1) el1.style.display = 'table';
+    if (el2) el2.style.display = 'table';
+}
+
+// Gestionnaire d’événements pour les radios
+document.querySelectorAll('input[name="tableSelector"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    const val = e.target.value;
+    hideAllTables();
+
+    switch (val) {
+      case 'consensusAttributDetailed':
+        //DetailedAttributConsensus();
+        showTable('consensusAttributDetailed');
+        break;
+
+      case 'consensusWorkerID':
+        //calculateConsensusWorker();
+        showTable('consensusWorkerID');
+        break;
+
+      case 'accuracyWorkerID':
+        //calculateAccuracyWorkerID();
+        showTable('accuracyWorkerID');
+        break;
+
+      case 'error_table':
+        //extraire_brut();
+        showTable('error_table');
+        break;
+
+      case 'Nb_Erreurs_WorkerID':
+        //generateTable();
+        showTable('Nb_Erreurs_WorkerID');
+        break;
+
+      case 'agreementTable_summaryTable':
+        //executeBoth();
+        showTablePair('agreementTable', 'summaryTable');
+        break;
+
+      case 'CRJ_Table1_CRJ_Table2':
+        // Simule le clic du bouton original si nécessaire
+        //calculerScoreGlobale();
+        // OU directement :
+        showTablePair('CRJ_Table1', 'CRJ_Table2');
+        break;
+    }
+  });
+});
+
+//AFFICHER FICHIER COMPILE TSV en PREMIER LIEU
+window.addEventListener("DOMContentLoaded", () => {
+    // Forcer la valeur par défaut
+    document.getElementById("dataSource").value = "tsv_file";
+
+    // Forcer le déclenchement du listener `change`
+    document.getElementById("dataSource").dispatchEvent(new Event("change"));
+});
 
 </script>
 </html>
