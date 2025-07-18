@@ -197,42 +197,33 @@
   
   
   
-  #progressOverlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.8); /* fond semi-transparent */
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
+ #progressOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
 
-  #progressBox {
-    text-align: center;
-    color: white;
-    font-size: 2em;
-    animation: fadeIn 0.5s ease-in-out;
-  }
+#progressBox {
+  background: #ffffff;
+  padding: 30px 40px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
 
-  #progressBox .icon {
-    font-size: 3em;
-    margin-bottom: 10px;
-    animation: pulse 1.2s infinite;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-  @keyframes pulse {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.7; }
-    100% { transform: scale(1); opacity: 1; }
-  }
+.icon img {
+  width: 350px;
+  height: 350px;
+  object-fit: contain;
+  animation: none; /* empêche toute animation CSS */
+}
     </style>
 </head>
 <body>
@@ -242,7 +233,7 @@
 <div id="progressOverlay">
   <div id="progressBox">
     <div class="icon">
-      <img src="dog_anime.gif" alt="Chargement..." width="250" height="250">
+      <img src="dog_anime.gif" alt="Chargement...">
     </div>
     <div id="progressText">Traitement en cours... 0%</div>
   </div>
