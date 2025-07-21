@@ -454,8 +454,10 @@ document.getElementById('showConsensusButton').addEventListener('click', () => {
 			});
 		  });
 
-		  const sortedCounts = Object.entries(attributeCounts).sort((a, b) => b[1] - a[1]);
-
+		  //const sortedCounts = Object.entries(attributeCounts).sort((a, b) => b[1] - a[1]);
+		const sortedCounts = Object.entries(attributeCounts)
+		  .filter(([attribute]) => attribute !== "on" && attribute !== "is_not_targeted_match") // ⛔️ Exclure "on" et "is_not_targeted_match"
+		  .sort((a, b) => b[1] - a[1]);
 		  let totalMajorityCount = 0;
 		  let totalMinorityCount = 0; // 🆕 Compteur local pour les minoritaires
 
