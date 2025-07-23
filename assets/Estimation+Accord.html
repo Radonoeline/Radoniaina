@@ -9,13 +9,6 @@
   /* Style global du corps */
   body {
     font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    background-color: #f4f4f4;
     padding: 20px;
   }
 
@@ -97,10 +90,14 @@
   button:hover {
     background-color: #0056b3;
   }
+  
+  #showConsensusButton,#copy_partage {
+  display:none;
+  }
 
-  /* Sélecteur QAS */
   #qasSelect {
-    width: 60px;
+    margin-top: 5px;
+    display: none;
   }
 
   /* Hauteur de la ligne à 10px */
@@ -111,6 +108,7 @@
   /* Sélecteur de partage */
   #partageTable {
     margin-top: 20px;
+	display:none;
   }
 
   #partageTable thead th {
@@ -124,6 +122,10 @@
 
   /* Cacher la table resultTable par défaut */
   #resultTable {
+    display: none; /* Cache le tableau */
+  }
+   /* Cacher la table consensusTable par défaut */
+  #consensusTable {
     display: none; /* Cache le tableau */
   }
   
@@ -153,7 +155,47 @@
   text-overflow: ellipsis; /* Affiche "..." si le texte dépasse */
 }
 
+#checkboxContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+  }
 
+  #checkboxContainer label {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    gap: 4px;
+    padding: 2px 6px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+
+    #checkboxContainer label:hover {
+      background: #e0e0e0;
+    }
+
+    #checkboxContainer input[type="checkbox"]:disabled + span {
+      color: #999;
+    }
+	
+	}
+
+  .flex-container {
+    display: flex;
+    gap: 20px;
+  }
+
+  .left-panel, .right-panel {
+    flex: 1;
+  }
+
+  .btn-group {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+  }
 </style>
 
 
@@ -167,23 +209,38 @@
     <div style="flex: 1; margin-right: 10px;">
         <h1>Estimation Accord + PARTAGE</h1>
         
-        <input type="file" id="fileInput" accept=".tsv" />
+        <input type="file" id="fileInput" accept=".tsv, .csv" />
         <button id="processButton">Process TSV</button>
-        <button id="showConsensusButton">Show Consensus</button>
-        <label for="qasSelect">Nombre de QAS :</label>
+        <button id="showConsensusButton">Show Consensus</button></br>
+        <label for="qasSelect">Liste CQ/QAS:</label>
+		<div id="checkboxContainer">
+		  <label><input type="checkbox" id="checkAll" value="Tout">Tout</label>
+		  <label><input type="checkbox" class="option" value="1090">Rado</label>
+		  <label><input type="checkbox" class="option" value="1353">Santatra</label>
+		  <label><input type="checkbox" class="option" value="1154">Ravo</label>
+		  <label><input type="checkbox" class="option" value="1396">Léa</label>
+		  <label><input type="checkbox" class="option" value="1765">Thonny</label>
+		  <label><input type="checkbox" class="option" value="2433">Nomena</label>
+		  <label><input type="checkbox" class="option" value="2844">Lalaina</label>
+		</div>
         <select id="qasSelect">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-        </select>
-        <div><button id="shareButton">Partager</button><button id="copy_partage">Copy Partage</button></div>
+		  <option value="1">1</option>
+		  <option value="2">2</option>
+		  <option value="3">3</option>
+		  <option value="4">4</option>
+		  <option value="5">5</option>
+		  <option value="6">6</option>
+		  <option value="7">7</option>
+		</select>
+		
+        <div><button id="shareButton">Partager</button><button id="copy_partage">Copy Partage</button><label><input type="checkbox" id="togglePartageTable">Afficher la Moyenne</label></div>
+		
+		
     </div>
 
     <!-- Deuxième div avec le tableau -->
     <div style="flex: 1; margin-left: 10px;">
+	<h2>Overview Table</h2>
         <table border="1" id="overview_table">
             <thead>
                 <tr>
@@ -252,8 +309,22 @@
     <tbody>
     </tbody>
 </table>
+<table id="partageTable2" border="1" style="margin-top: 20px; border-collapse: collapse;">
+  <thead>
+  <tr>
+    <th>Batch</th>
+    <th>HitID</th>
+    <th>CQ/QAS</th>
+    <th>Accord</th>
+    <th>WorkerID</th>
+    <th>Volume</th>
+    <th>TTT</th>
+  </tr>
+</thead>
+  <tbody></tbody>
+</table>
 
-  <h2>Consensus Table</h2>
+  
   <table border="1" id="consensusTable">
     <thead>
       <tr>
@@ -299,7 +370,7 @@
 
 
   <script>
-    document.getElementById('processButton').addEventListener('click', () => {
+document.getElementById('processButton').addEventListener('click', () => {
     const fileInput = document.getElementById('fileInput');
     if (!fileInput.files.length) {
         alert('Veuillez sélectionner un fichier TSV.');
@@ -312,8 +383,13 @@
         skipEmptyLines: true,
         worker: true, // Utilisation de Web Workers pour les fichiers volumineux
         complete: (result) => {
-            processTSV(result.data);
-        },
+		processTSV(result.data);
+		window.tsvDataGlobal = result.data; // ✅ Stockage global correct
+
+		// ✅ Simuler le clic du bouton "Show Consensus"
+		const showBtn = document.getElementById("showConsensusButton");
+		if (showBtn) showBtn.click();
+	},
     });
 });
 
@@ -351,7 +427,7 @@ function processTSV(data) {
         // Création de la ligne optimisée
         const newRow = document.createElement('tr');
         newRow.innerHTML = `
-            <td>${row['Source.name'] || ''}</td>
+            <td>${row['Title'] || ''}</td>
             <td>${row['AssignmentId'] || ''}</td>
             <td>${row['HITId'] || ''}</td>
             <td>${row['WorkerId'] || ''}</td>
@@ -637,6 +713,81 @@ document.getElementById("shareButton").addEventListener("click", function () {
         avgRow.appendChild(valueCell);
     }
     tbody.appendChild(avgRow);
+// PARTAGE TABLE 2
+// ➕ Création de partageTable2
+    const partageTable2 = document.getElementById("partageTable2");
+    partageTable2.querySelector("tbody").innerHTML = '';
+
+    // ✅ Récupération des QAS cochés
+    const allCheckboxes = document.querySelectorAll('#checkboxContainer input[type="checkbox"].option');
+    const toutChecked = document.getElementById("checkAll").checked;
+    let qasList = [];
+
+    if (toutChecked) {
+        // Si "Tout" est coché, prendre toutes les valeurs
+        qasList = Array.from(allCheckboxes).map(cb => cb.value);
+    } else {
+        qasList = Array.from(allCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+    }
+
+    if (qasList.length === 0) {
+        alert("Aucun QAS sélectionné pour partageTable2.");
+        return;
+    }
+
+    // ✅ Repartition équitable sur les QAS cochés
+    let distributions2 = Array.from({ length: qasList.length }, () => []);
+    let sums2 = new Array(qasList.length).fill(0);
+
+    for (let hit of hitData) {
+        const minIndex = sums2.indexOf(Math.min(...sums2));
+        distributions2[minIndex].push(hit);
+        sums2[minIndex] += hit.moyenne;
+    }
+
+    // ✅ Remplir le tableau partageTable2
+    const tbody2 = partageTable2.querySelector("tbody");
+    for (let i = 0; i < qasList.length; i++) {
+        const qas = qasList[i];
+        const group = distributions2[i];
+
+        for (let item of group) {
+            const tr = document.createElement("tr");
+
+            const tdBatch = document.createElement("td");
+            tdBatch.textContent = rowSourceName(item.hitId); // 🔁 voir helper ci-dessous
+
+            const tdHit = document.createElement("td");
+            tdHit.textContent = item.hitId;
+
+            const tdQAS = document.createElement("td");
+            tdQAS.textContent = qas;
+
+            const tdAccord = document.createElement("td");
+            tdAccord.textContent = `${item.moyenne.toFixed(2)}% - ${item.nbAssgt} Assgnt`;
+
+            tr.appendChild(tdBatch);
+            tr.appendChild(tdHit);
+            tr.appendChild(tdQAS);
+            tr.appendChild(tdAccord);
+
+            tbody2.appendChild(tr);
+        }
+    }
+
+    // 🔧 Helper pour retrouver le Source.name d'un HITId dans consensusTable
+    function rowSourceName(hitId) {
+        const row = rows.find(r => r.cells[hitIdIndex].textContent.trim() === hitId);
+        return row ? (row.cells[0]?.textContent.trim() || '') : '';
+    }
+finalise_partageTable2();
+
+
+// FIN PARTAGE TABLE 2
+	
+	
 });
 
 
@@ -764,6 +915,157 @@ function updateOverviewTable() {
       `;
     }
 
+//FINALISATION PARTAGE TABLE 2
+function finalise_partageTable2() {
+    if (!window.tsvDataGlobal || !Array.isArray(tsvDataGlobal)) {
+        alert("Données TSV non disponibles.");
+        return;
+    }
+
+    const rows = document.querySelectorAll("#partageTable2 tbody tr");
+
+    // Construction des statistiques par WorkerID
+    const workerStats = {};
+    tsvDataGlobal.forEach(row => {
+        const wid = row.WorkerId?.trim();
+        const worktime = parseFloat(row.worktime);
+
+        if (!wid || isNaN(worktime)) return;
+
+        if (!workerStats[wid]) {
+            workerStats[wid] = { volume: 0, totalTime: 0 };
+        }
+
+        workerStats[wid].volume += 1;
+        workerStats[wid].totalTime += worktime;
+    });
+
+    // Ajout des 3 colonnes manquantes à chaque ligne
+    rows.forEach((tr, index) => {
+        // Exemple de mapping : 1er QAS => 1er WorkerID
+        const workerIds = Object.keys(workerStats);
+        const wid = workerIds[index] || "";
+        const stats = workerStats[wid] || { volume: "", totalTime: "" };
+
+        const tdWorker = document.createElement("td");
+        tdWorker.textContent = wid;
+
+        const tdVolume = document.createElement("td");
+        tdVolume.textContent = stats.volume || "";
+
+        const tdTTT = document.createElement("td");
+        tdTTT.textContent = formatSecondsToHHMMSS(stats.totalTime || 0);
+
+        tr.appendChild(tdWorker);
+        tr.appendChild(tdVolume);
+        tr.appendChild(tdTTT);
+    });
+}
+
+// 🔧 Utilitaire pour convertir secondes → hh:mm:ss
+function formatSecondsToHHMMSS(seconds) {
+    seconds = Math.round(seconds);
+    const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+
+
+
+
+
+// GESTION CHECK BOX QAS / CQ + MAJ de qasSelect
+document.addEventListener('DOMContentLoaded', () => {
+  const checkAll = document.getElementById('checkAll');
+  const options = document.querySelectorAll('.option');
+  const qasSelect = document.getElementById('qasSelect');
+
+  // 🟢 Fonction de mise à jour de <select>
+  function updateQasSelect(value) {
+    const optionToSelect = Array.from(qasSelect.options).find(opt => parseInt(opt.value) === value);
+    if (optionToSelect) qasSelect.value = optionToSelect.value;
+  }
+
+  // 🔁 Quand on coche ou décoche "Tout"
+  checkAll.addEventListener('change', () => {
+    if (checkAll.checked) {
+      options.forEach(opt => {
+        opt.checked = false;
+        opt.disabled = true;
+      });
+      updateQasSelect(7); // "Tout" → 7
+    } else {
+      options.forEach(opt => {
+        opt.disabled = false;
+      });
+      // 🟡 Recalcul immédiat selon les cases déjà cochées
+      const countChecked = Array.from(options).filter(opt => opt.checked).length;
+      if (countChecked > 0) updateQasSelect(countChecked);
+    }
+  });
+
+  // 🔁 Mise à jour dynamique si on coche individuellement
+  options.forEach(opt => {
+    opt.addEventListener('change', () => {
+      const countChecked = Array.from(options).filter(o => o.checked).length;
+      updateQasSelect(countChecked);
+    });
+  });
+});
+
+
+document.getElementById("togglePartageTable").addEventListener("change", function () {
+  const table = document.getElementById("partageTable");
+  table.style.display = this.checked ? "table" : "none";
+});
+
+//copier n'importe quel Table
+// ✅ Convertit un tableau HTML en texte tabulé
+function tableToText(table) {
+  const rows = Array.from(table.rows);
+  return rows.map(row =>
+    Array.from(row.cells).map(cell => cell.textContent.trim()).join('\t')
+  ).join('\n');
+}
+
+// ✅ Affiche une notification temporaire
+function showCopyNotification(message = "Table copiée") {
+  const notif = document.getElementById("copyNotification");
+  notif.textContent = message;
+  notif.style.display = "block";
+  setTimeout(() => notif.style.display = "none", 3000);
+}
+
+// ✅ Gère le clic sur toutes les tables
+document.querySelectorAll("table").forEach(table => {
+  table.addEventListener("click", () => {
+    const text = tableToText(table);
+    navigator.clipboard.writeText(text).then(() => {
+      const tableId = table.id || "Inconnue";
+      showCopyNotification(`Table "${tableId}" copiée`);
+    }).catch(err => {
+      console.error("Erreur de copie :", err);
+      showCopyNotification("Erreur lors de la copie");
+    });
+  });
+});
   </script>
+  <!-- ✅ Notification flottante -->
+<div id="copyNotification" style="
+  display: none;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2ecc71;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  z-index: 9999;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+">Table copiée</div>
 </body>
 </html>
