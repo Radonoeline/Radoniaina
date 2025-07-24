@@ -19,13 +19,13 @@
     margin: 20px 0;
   }
 
-  /* Style des tableaux */
-  table {
-    border-collapse: collapse;
-    margin-bottom: 20px;
-    width: 100%;
-    max-width: 1000px;
-  }
+  /* Style des tableaux sauf #overview_table */
+	table:not(#overview_table) {
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 1000px;
+}
 
   th, td {
     padding: 5px 10px; /* Réduction du padding pour ajuster la hauteur */
@@ -196,6 +196,12 @@
     display: flex;
     gap: 10px;
   }
+  
+#overview_table tr {
+  background-color: unset !important;
+}
+  
+
 </style>
 
 
@@ -214,15 +220,15 @@
         <button id="showConsensusButton">Show Consensus</button></br>
         <label for="qasSelect">Liste CQ/QAS:</label>
 		<div id="checkboxContainer">
-		  <label><input type="checkbox" id="checkAll" value="Tout">Tout</label>
-		  <label><input type="checkbox" class="option" value="1090">Rado</label>
-		  <label><input type="checkbox" class="option" value="1353">Santatra</label>
-		  <label><input type="checkbox" class="option" value="1154">Ravo</label>
-		  <label><input type="checkbox" class="option" value="1396">Léa</label>
-		  <label><input type="checkbox" class="option" value="1765">Thonny</label>
-		  <label><input type="checkbox" class="option" value="2433">Nomena</label>
-		  <label><input type="checkbox" class="option" value="2844">Lalaina</label>
-		</div>
+			  <label><input type="checkbox" id="checkAll" value="Tout"> Tout</label>
+			  <label><input type="checkbox" class="option" value="1090" data-color="#d4edda"> Rado</label>     <!-- vert clair -->
+			  <label><input type="checkbox" class="option" value="1353" data-color="#ffeeba"> Santatra</label> <!-- jaune clair -->
+			  <label><input type="checkbox" class="option" value="1154" data-color="#f8d7da"> Ravo</label>     <!-- rouge rosé -->
+			  <label><input type="checkbox" class="option" value="1396" data-color="#d1ecf1"> Léa</label>      <!-- bleu clair -->
+			  <label><input type="checkbox" class="option" value="1765" data-color="#e2e3e5"> Thonny</label>   <!-- gris clair -->
+			  <label><input type="checkbox" class="option" value="2433" data-color="#f5c6cb"> Nomena</label>   <!-- rose foncé -->
+			  <label><input type="checkbox" class="option" value="2844" data-color="#c3e6cb"> Lalaina</label>  <!-- vert plus foncé -->
+			</div>
         <select id="qasSelect">
 		  <option value="1">1</option>
 		  <option value="2">2</option>
@@ -253,7 +259,7 @@
         </table>
     </div>
 
-</div>
+	</div>
 
 <table border="1" id="resultTable">
     <thead>
@@ -318,7 +324,7 @@
     <th>Accord</th>
 	<th>Participants</th>
     <th>WorkerID</th>
-    <th>Volume</th>
+    <th>Volume Produits</th>
     <th>TTT</th>
   </tr>
 </thead>
@@ -608,7 +614,6 @@ newRow.innerHTML = `
 
 
 //PARTAGE HITID PAR QAS TRAITANT
-//PARTAGE HITID PAR QAS TRAITANT
 document.getElementById("shareButton").addEventListener("click", function () {
     const consensusTable = document.getElementById("consensusTable");
     const partageTable = document.getElementById("partageTable");
@@ -786,6 +791,7 @@ document.getElementById("shareButton").addEventListener("click", function () {
 	
 pre_finalise_partageTable2();
 finalise_partageTable2();
+coloriser_partageTable2(); // 🎨 Coloration finale
 
 
 // FIN PARTAGE TABLE 2
@@ -839,84 +845,45 @@ function formatPourcentage(value) {
 
 //OVERVIEW SECTION
 
+
 function updateOverviewTable() {
-      // Récupérer toutes les lignes de la table "consensusTable"
-      const consensusTable = document.getElementById('consensusTable');
-      const rows = consensusTable.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-      const totalRows = rows.length;
+  const consensusTable = document.getElementById('consensusTable');
+  const rows = consensusTable.querySelector('tbody').querySelectorAll('tr');
+  const totalRows = rows.length;
 
-      // Compteurs pour chaque catégorie
-      let topCount = 0;
-      let slightlyTopCount = 0;
-      let averageCount = 0;
-      let badCount = 0;
-	  let veryBadCount = 0;
+  let topCount = 0, slightlyTopCount = 0, averageCount = 0, badCount = 0, veryBadCount = 0;
 
-      // Analyser les lignes de la table "consensusTable"
-      for (let row of rows) {
-        const moyCell = row.cells[row.cells.length - 2]; // "Moyenne" est dans la dernière cellule
-        const moyenne = parseFloat(moyCell.innerText.replace('%', '').trim());
+  for (let row of rows) {
+    const moyCell = row.cells[row.cells.length - 2];
+    const moyenne = parseFloat(moyCell.innerText.replace('%', '').trim());
 
-        // Classer selon la valeur de "Moyenne"
-			if (moyenne === 100) {
-			  topCount++;
-			} else if (moyenne > 80 && moyenne < 100) {
-			  slightlyTopCount++;
-			} else if (moyenne >= 70 && moyenne <= 80) {
-			  averageCount++;
-			} else if (moyenne > 20 && moyenne < 70) {
-			  badCount++;
-			} else if (moyenne >= 0 && moyenne <= 20) {
-			  veryBadCount++;
-			}
-			}
+    if (moyenne === 100) topCount++;
+    else if (moyenne > 80 && moyenne < 100) slightlyTopCount++;
+    else if (moyenne >= 70 && moyenne <= 80) averageCount++;
+    else if (moyenne > 20 && moyenne < 70) badCount++;
+    else if (moyenne >= 0 && moyenne <= 20) veryBadCount++;
+  }
 
-      // Calculer les pourcentages
-      const topPercentage = ((topCount / totalRows) * 100).toFixed(2) + '%';
-      const slightlyTopPercentage = ((slightlyTopCount / totalRows) * 100).toFixed(2) + '%';
-      const averagePercentage = ((averageCount / totalRows) * 100).toFixed(2) + '%';
-      const badPercentage = ((badCount / totalRows) * 100).toFixed(2) + '%';
-	  const veryBadPercentage = ((veryBadCount / totalRows) * 100).toFixed(2) + '%';
+  const toPct = (count) => ((count / totalRows) * 100).toFixed(2) + '%';
 
-      // Mettre à jour le tableau "overview_table"
-      const overviewTable = document.getElementById('overview_table');
-      const tbody = overviewTable.getElementsByTagName('tbody')[0];
-      tbody.innerHTML = ''; // Réinitialiser le tableau avant de l'ajouter
+  const tbody = document.getElementById('overview_table').querySelector('tbody');
+  tbody.innerHTML = '';
 
-      // Ajouter les nouvelles lignes
-      tbody.innerHTML += `
-        <tr>
-          <td>100%</td>
-          <td>${topCount}</td>
-          <td>${topPercentage}</td>
-        </tr>
-        <tr>
-          <td>99.99% à 80.00%</td>
-          <td>${slightlyTopCount}</td>
-          <td>${slightlyTopPercentage}</td>
-        </tr>
-        <tr>
-          <td>79.99% à 70.00%</td>
-          <td>${averageCount}</td>
-          <td>${averagePercentage}</td>
-        </tr>
-        <tr>
-          <td>69.99% à 20.00%</td>
-          <td>${badCount}</td>
-          <td>${badPercentage}</td>
-        </tr>
-		<tr>
-          <td>19.99% à 0.00%</td>
-          <td>${veryBadCount}</td>
-          <td>${veryBadPercentage}</td>
-        </tr>
-        <tr>
-          <td>Total:</td>
-          <td>${totalRows}</td>
-          <td>100%</td>
-        </tr>
-      `;
-    }
+	function addRow(label, count, percent, bgColor, color = '#000') {
+	  const tr = document.createElement('tr');
+	  //tr.setAttribute('style', `background-color: ${bgColor} !important; color: ${color} !important;`);
+	  tr.innerHTML = `<td>${label}</td><td>${count}</td><td>${percent}</td>`;
+	  tbody.appendChild(tr);
+	}
+
+  addRow('100%', topCount, toPct(topCount), '#28a745', '#fff');         // ✅ Vert foncé + texte blanc
+  addRow('99.99% à 80.00%', slightlyTopCount, toPct(slightlyTopCount), '#b8e994'); // ✅ Vert clair
+  addRow('79.99% à 70.00%', averageCount, toPct(averageCount), '#fff3cd');         // ✅ Jaune clair
+  addRow('69.99% à 20.00%', badCount, toPct(badCount), '#f8d7da');                 // ✅ Rouge rosé
+  addRow('19.99% à 0.00%', veryBadCount, toPct(veryBadCount), '#f5c6cb');          // ✅ Rouge foncé
+  addRow('Total:', totalRows, '100%', '#dee2e6');                                  // ✅ Gris clair
+}
+
 
 
 //FUNCTION PRE FINALISE PARTAGE TABLE 2
@@ -1019,6 +986,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const options = document.querySelectorAll('.option');
   const qasSelect = document.getElementById('qasSelect');
 
+  // 🎨 Appliquer la couleur sur chaque label selon data-color
+  const checkboxContainer = document.getElementById("checkboxContainer");
+  const labels = checkboxContainer.querySelectorAll("label");
+
+  labels.forEach(label => {
+    const input = label.querySelector("input.option");
+    if (input) {
+      const color = input.getAttribute("data-color");
+      if (color) {
+        label.style.backgroundColor = color;
+        label.style.padding = "2px 6px";
+        label.style.borderRadius = "4px";
+        label.style.margin = "2px";
+        label.style.display = "inline-block";
+      }
+    }
+  });
+
   // 🟢 Fonction de mise à jour de <select>
   function updateQasSelect(value) {
     const optionToSelect = Array.from(qasSelect.options).find(opt => parseInt(opt.value) === value);
@@ -1052,11 +1037,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-
+// ✅ Affichage/Masquage de la table "partageTable"
 document.getElementById("togglePartageTable").addEventListener("change", function () {
   const table = document.getElementById("partageTable");
   table.style.display = this.checked ? "table" : "none";
 });
+
+
+
+
 
 //copier n'importe quel Table
 // ✅ Convertit un tableau HTML en texte tabulé
@@ -1088,6 +1077,39 @@ document.querySelectorAll("table").forEach(table => {
     });
   });
 });
+
+
+
+//FUNCTION COLORISATION TABLE PARTAGE SELON QAS OU CQ
+function coloriser_partageTable2() {
+    const partageTable2 = document.getElementById("partageTable2");
+    const rows = partageTable2.querySelectorAll("tbody tr");
+
+    // Préparer dictionnaire { QAS => couleur }
+    const qasColorMap = {};
+    document.querySelectorAll('#checkboxContainer .option').forEach(cb => {
+        const val = cb.value;
+        const color = cb.getAttribute('data-color');
+        if (val && color) qasColorMap[val] = color;
+    });
+
+    rows.forEach(row => {
+        const qasCell = row.cells[2]; // colonne CQ/QAS
+        if (!qasCell) return;
+        const qasValue = qasCell.textContent.trim();
+
+        const color = qasColorMap[qasValue];
+        if (color) {
+            // Appliquer aux 4 premières colonnes (Batch, HitID, CQ/QAS, Accord)
+            for (let i = 0; i <= 3; i++) {
+                const cell = row.cells[i];
+                if (cell) {
+                    cell.style.backgroundColor = color;
+                }
+            }
+        }
+    });
+}
   </script>
   <!-- ✅ Notification flottante -->
 <div id="copyNotification" style="
