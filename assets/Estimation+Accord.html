@@ -316,6 +316,7 @@
     <th>HitID</th>
     <th>CQ/QAS</th>
     <th>Accord</th>
+	<th>Participants</th>
     <th>WorkerID</th>
     <th>Volume</th>
     <th>TTT</th>
@@ -782,6 +783,8 @@ document.getElementById("shareButton").addEventListener("click", function () {
         const row = rows.find(r => r.cells[hitIdIndex].textContent.trim() === hitId);
         return row ? (row.cells[0]?.textContent.trim() || '') : '';
     }
+	
+pre_finalise_partageTable2();
 finalise_partageTable2();
 
 
@@ -914,6 +917,40 @@ function updateOverviewTable() {
         </tr>
       `;
     }
+
+
+//FUNCTION PRE FINALISE PARTAGE TABLE 2
+function pre_finalise_partageTable2() {
+    const table = document.getElementById("partageTable2");
+    const rows = table.querySelectorAll("tbody tr");
+
+    if (!window.tsvDataGlobal || !Array.isArray(window.tsvDataGlobal)) {
+        console.error("⚠️ tsvDataGlobal est manquant ou invalide.");
+        return;
+    }
+
+    rows.forEach(row => {
+        const hitId = row.cells[1]?.textContent.trim(); // 2ème colonne = HitID
+        if (!hitId) return;
+
+        // 🔍 Filtrer les lignes TSV avec le même HITId
+        const matchedLines = window.tsvDataGlobal.filter(entry => entry.HITId === hitId);
+
+        // 🧑‍🤝‍🧑 Récupérer les WorkerId uniques
+        const workerIds = [...new Set(matchedLines.map(line => line.WorkerId).filter(Boolean))];
+
+        // 🔗 Concaténer avec pipe "|"
+        const participantsText = workerIds.join('|');
+
+        // 🧱 Créer la cellule "Participants"
+        const tdParticipants = document.createElement("td");
+        tdParticipants.textContent = participantsText;
+
+        // 🧱 Insérer la colonne juste avant "WorkerID" (colonne 4 → index 4)
+        row.insertBefore(tdParticipants, row.cells[4]);
+    });
+}
+
 
 //FINALISATION PARTAGE TABLE 2
 function finalise_partageTable2() {
