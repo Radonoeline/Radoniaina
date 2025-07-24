@@ -427,7 +427,7 @@ function processTSV(data) {
         // Création de la ligne optimisée
         const newRow = document.createElement('tr');
         newRow.innerHTML = `
-            <td>${row['Title'] || ''}</td>
+            <td>${row['Source.name'] || ''}</td>
             <td>${row['AssignmentId'] || ''}</td>
             <td>${row['HITId'] || ''}</td>
             <td>${row['WorkerId'] || ''}</td>
