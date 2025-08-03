@@ -7,12 +7,41 @@
     <script src="papaparse_rado.js"></script>
     <link rel="stylesheet" href="styles.css">
 	 <style>
+	 
+#escalier_table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+#escalier_table th,
+#escalier_table td {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  color: #000; /* ✅ Texte noir partout */
+}
+
+#escalier_table thead th {
+  text-align: center;
+  background-color: #e0e0e0; /* ✅ Fond clair pour les entêtes */
+  font-weight: bold;
+}
+
+#escalier_table tbody th {
+  text-align: right; /* ✅ Première colonne à droite */
+  background-color: #f0f0f0; /* ✅ Fond légèrement différent */
+  font-weight: normal;
+}
+
+#escalier_table tbody td {
+  text-align: center; /* ✅ Cellules centrales centrées */
+}
+
         .file-input {
             display: block;
             margin-bottom: 20px;
         }
-    </style>
-    <style>
+
         body {
             font-family: Arial, sans-serif;
         }
@@ -302,6 +331,7 @@
 				  <label><input type="radio" name="tableSelector" value="Nb_Erreurs_WorkerID">Erreurs Attributs/WorkerID</label>
 				  <label><input type="radio" name="tableSelector" value="agreementTable_summaryTable">Agréement/Résumé</label>
 				  <label><input type="radio" name="tableSelector" value="CRJ_Table1_CRJ_Table2">Score Globale</label>
+				  <label><input type="radio" name="tableSelector" value="escalier_table">Table Escalier</label>
 				</div>
 				
                 
@@ -353,6 +383,7 @@
                 <table id="accuracyWorkerID" class="hidden"></table>
                 <table id="consensusWorkerID" class="hidden"></table>
                 <table id="consensusAttributDetailed" class="hidden"></table>
+				<table id="escalier_table" class="hidden"></table>
                 <table id="Nb_Erreurs_WorkerID" class="hidden">
                     <tr id="headerRow"></tr>
                 </table>
@@ -659,6 +690,7 @@ function processDataDaily(data) {
 
                 const assignmentJudgmentRatio = okCount / totalCount;
                 const assignmentJudgment = assignmentJudgmentRatio > 0.5 ? 'assignement_ok' : 'assignement_ko';
+                
 
                 assignmentGroup.forEach(row => {
                     const rowIndex = row.index;
@@ -698,6 +730,7 @@ function processDataDaily(data) {
 			//setTimeout(() => {
 			//	notification.style.display = 'none';
 			//}, 3000);
+			generateEscalierFromResultTable();
 			lancerTraitementAutomatique();
         }
     });
@@ -940,6 +973,7 @@ function processDataDailyFromTextarea() {
                     hitJudgmentCell.textContent = hitJudgment;
                 });
             });
+			generateEscalierFromResultTable();
 			lancerTraitementAutomatique();
             //const notification = document.getElementById('notification');
 			//notification.textContent = 'Le traitement des données est terminé.';
@@ -1952,7 +1986,7 @@ function generateTable() {
 function showTable(tableId) {
     // Masquer toutes les tables
     const tables = document.querySelectorAll('table');
-    tables.forEach(table => table.classList.add('hidden'));
+    //tables.forEach(table => table.classList.add('hidden'));
     
     // Afficher la table correspondante
     const tableToShow = document.getElementById(tableId);
@@ -2160,7 +2194,7 @@ const simulations = [
     { action: () => extraire_brut(), table: 'error_table' },
     { action: () => generateTable(), table: 'Nb_Erreurs_WorkerID' },
     { action: () => executeBoth(), table: ['agreementTable', 'summaryTable'] },
-    { action: () => calculerScoreGlobale(), table: ['CRJ_Table1', 'CRJ_Table2'] }
+    { action: () => calculerScoreGlobale(), table: ['CRJ_Table1', 'CRJ_Table2'] },
 ];
 
 
@@ -2215,7 +2249,8 @@ function hideAllTables() {
         'agreementTable',
         'summaryTable',
         'CRJ_Table1',
-        'CRJ_Table2'
+        'CRJ_Table2',
+		'escalier_table'
     ];
     tableIds.forEach(id => {
         const el = document.getElementById(id);
@@ -2266,7 +2301,10 @@ document.querySelectorAll('input[name="tableSelector"]').forEach(radio => {
         showTable('error_table');
         break;
 
-      case 'Nb_Erreurs_WorkerID':
+      case 'escalier_table':
+        showTable('escalier_table');
+        break;
+	 case 'Nb_Erreurs_WorkerID':
         //generateTable();
         showTable('Nb_Erreurs_WorkerID');
         break;
@@ -2420,6 +2458,197 @@ function detectDelimiter(file, callback) {
         });
       });
     });
+	
+	
+//FUNCTION GENERATEUR TABLE ESCALIER
+function generateEscalierFromResultTable() {
+  const attributSets = {
+    "camera_search": [
+      'asin_image_not_load', 'has_product_difference',
+      'is_wrong_bundle', 'is_wrong_characteristic',
+      'is_wrong_packaging_overlay', 'is_wrong_size_or_count',
+      'no_difference', 'wrong_category'
+    ],
+    "camera_search_irr": [
+      'asin_image_not_load', 'cannot_judge', 'exact_match', 'has_product_difference',
+      'irrelevant', 'is_wrong_bundle', 'is_wrong_characteristic', 'is_wrong_packaging_overlay',
+      'is_wrong_size_or_count', 'no_difference', 'possible_substitute', 'wrong_category'
+    ],
+    "furniture": [
+      'asin_image_not_load', 'color', 'design', 'extra_features',
+      'location', 'material', 'no_difference', 'pattern',
+      'shape', 'size', 'support_type', 'surface_placement',
+      'wrong_age_group', 'wrong_category'
+    ],
+    "furniture_irr": [
+      'asin_image_not_load', 'cannot_judge', 'color', 'design', 'exact_match', 'extra_features',
+      'irrelevant', 'location', 'material', 'no_difference', 'pattern', 'possible_substitute', 'shape',
+      'size', 'support_type', 'surface_placement', 'wrong_age_group', 'wrong_category'
+    ]
+  };
+
+  const indexTypeSelect = document.getElementById("indextype");
+  const attributs = attributSets[indexTypeSelect?.value] || [];
+
+  const resultTable = document.getElementById("resultTable");
+  if (!resultTable) {
+    alert("⚠️ Table #resultTable introuvable !");
+    return;
+  }
+
+  const rows = resultTable.querySelectorAll("tbody tr");
+  if (rows.length === 0) {
+    alert("⚠️ Table #resultTable est vide !");
+    return;
+  }
+
+  //const headers = Array.from(resultTable.querySelectorAll("thead th")).map(th => th.innerText.trim());
+  const firstRow = resultTable.querySelector("tr");
+const headers = Array.from(firstRow.querySelectorAll("th")).map(th => th.innerText.trim());
+console.log("🧠 Colonnes détectées :", headers);
+
+  const colIndex = {};
+  headers.forEach((h, i) => colIndex[h] = i);
+
+	if (!('smarter' in colIndex) || !('juge' in colIndex)) {
+	  alert("⚠️ Les colonnes 'smarter' et 'juge' sont requises !");
+	  console.log("colIndex détecté :", colIndex); // <- pour debug
+	  return;
+	}
+
+  const parsedRows = Array.from(rows).map(row =>
+    Array.from(row.querySelectorAll('td')).map(td => td.innerText.trim())
+  );
+
+  // === Traitement escalier ===
+  const counts = {};
+  attributs.forEach(att1 => {
+    counts[att1] = {};
+    attributs.forEach(att2 => {
+      counts[att1][att2] = 0;
+    });
+  });
+
+  parsedRows.forEach(row => {
+    const jugeAttrs = row[colIndex['smarter']]?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    const etuAttrs = row[colIndex['juge']]?.split(',').map(s => s.trim()).filter(Boolean) || [];
+
+    attributs.forEach(attr => {
+      if (jugeAttrs.includes(attr) && etuAttrs.includes(attr)) {
+        const code = row[colIndex[attr]]?.trim();
+        if (code === 'c_min' || code === 'c_maj') {
+          counts[attr][attr]++;
+        }
+      }
+    });
+  });
+
+  parsedRows.forEach(row => {
+    const jugeAttrs = row[colIndex['juge']]?.split(',').map(s => s.trim()).filter(Boolean) || [];
+    const etuAttrs = row[colIndex['smarter']]?.split(',').map(s => s.trim()).filter(Boolean) || [];
+
+    jugeAttrs.forEach(jAttr => {
+      if (!etuAttrs.includes(jAttr)) {
+        const val = row[colIndex[jAttr]]?.trim();
+        if (val === 'missing_min' || val === 'missing_maj') {
+          etuAttrs.forEach(eAttr => {
+            if (counts[jAttr][eAttr] !== undefined) {
+              counts[jAttr][eAttr]++;
+            }
+          });
+        }
+      }
+    });
+  });
+
+  // === Affichage escalier ===
+  const table = document.getElementById("escalier_table");
+  table.innerHTML = '';
+
+  const totalGlobal = attributs.reduce((acc, rowAttr) =>
+    acc + attributs.reduce((sum, colAttr) => sum + (counts[rowAttr][colAttr] || 0), 0), 0
+  );
+
+  const rates = {};
+  attributs.forEach(colAttr => {
+    let errorSum = 0;
+    attributs.forEach(rowAttr => {
+      if (rowAttr !== colAttr) {
+        errorSum += counts[rowAttr][colAttr] || 0;
+      }
+    });
+    rates[colAttr] = totalGlobal > 0 ? (errorSum / totalGlobal) * 100 : 0;
+  });
+
+  const maxRate = Math.max(...Object.values(rates));
+  const flatNonDiag = [];
+  attributs.forEach(row => {
+    attributs.forEach(col => {
+      if (row !== col) flatNonDiag.push({ row, col, val: counts[row][col] });
+    });
+  });
+  flatNonDiag.sort((a, b) => b.val - a.val);
+  const top1 = flatNonDiag[0]?.val || 0;
+  const top2 = flatNonDiag[1]?.val || 0;
+  const top3 = flatNonDiag[2]?.val || 0;
+
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const th0 = document.createElement('th');
+  th0.textContent = '';
+  headerRow.appendChild(th0);
+  attributs.forEach(attr => {
+    const th = document.createElement('th');
+    th.textContent = attr;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  attributs.forEach(attrRow => {
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = attrRow;
+    tr.appendChild(th);
+
+    attributs.forEach(attrCol => {
+      const td = document.createElement('td');
+      const val = counts[attrRow][attrCol] || 0;
+      td.textContent = val;
+
+      if (attrRow === attrCol) {
+        td.style.backgroundColor = '#228B22';
+      } else if (val === top1) {
+        td.style.backgroundColor = '#ff4d4d';
+      } else if (val === top2) {
+        td.style.backgroundColor = '#ff9999';
+      } else if (val === top3) {
+        td.style.backgroundColor = '#ffcccc';
+      }
+
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  const trRate = document.createElement('tr');
+  const thRate = document.createElement('th');
+  thRate.textContent = 'Errors rate (%)';
+  trRate.appendChild(thRate);
+
+  attributs.forEach(colAttr => {
+    const td = document.createElement('td');
+    const rate = rates[colAttr];
+    td.textContent = rate.toFixed(2).replace('.', ',') + '%';
+    if (rate === maxRate) td.style.backgroundColor = '#ff4d4d';
+    trRate.appendChild(td);
+  });
+
+  tbody.appendChild(trRate);
+  table.appendChild(tbody);
+}
+
 </script>
 </html>
-
