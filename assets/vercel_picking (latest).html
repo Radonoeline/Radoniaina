@@ -86,6 +86,7 @@ body {
 /* Bloc ASIN */
 .asin-block {
   display: flex;
+  top:20px;
   align-items: flex-start;
   border: 2px solid #999;
   font-size: 15px;
@@ -189,12 +190,10 @@ label select {
   font-size: 12px;
 }
 
-#floatingASINImage {
+#floatingASINCanvas {
   position: fixed;
   top: 50px;
   right: 20px;
-  max-width: 300%;
-  height: auto;
   z-index: 9999;
   cursor: move;
   border: 2px solid #444;
@@ -203,10 +202,10 @@ label select {
 }
 
 #floatingQueryWrapper.dragging {
-  cursor: grabbing;
+  cursor: move;
 }
 #floatingQueryWrapper {
-  cursor: grab;
+  cursor: move;
   touch-action: none;         /* Important pour éviter les effets "glissants" */
   user-select: none;          /* Empêche la sélection de texte ou image */
   position: fixed !important;
@@ -224,6 +223,7 @@ label select {
   width: 100%;
   display: block;
   transition: transform 0.3s ease;
+  cursor:move;
 }
 
 #queryBBox {
@@ -329,12 +329,27 @@ label select {
   pointer-events: auto;
 }
 
-#btnSaveData1 {
+#btnSaveData1{
   position: fixed;
   bottom: 40px;
-  left: 50%;
+  Right: 0%;
   transform: translateX(-50%);
-  background-color: #007bff;
+  background-color: #28a745;
+  color: white;
+  font-size: 18px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+#btnSaveData2 {
+  position: fixed;
+  bottom: 40px;
+  left: 100px;
+  transform: translateX(-50%);
+  background-color: #28a745;
   color: white;
   font-size: 18px;
   padding: 12px 24px;
@@ -345,9 +360,25 @@ label select {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-#btnSaveData1:hover {
-  background-color: #0056b3;
+#done:hover, #btnSaveData2:hover {
+  background-color: #218838;
 }
+#done {
+  display: none;
+}
+
+#btnSaveData {
+  display: none;
+}
+#btnSaveData, #btnSaveData1 {
+  background-color: #dc3545;
+  color: white;
+}
+
+#btnSaveData:hover, #btnSaveData1:hover {
+  background-color: #c82333;
+}
+
 
 #controls {
   transition: transform 0.3s ease-in-out;
@@ -389,22 +420,7 @@ label select {
   background-color: #f1f1f1;
 }
 
-#floatingQueryWrapper,
-#queryRotatableWrapper,
-#floatingASINImage {
-  transform-origin: center center;
-  transition: transform 0.3s ease;
-}
 
-#queryRotatableWrapper {
-  transform-origin: center center;
-  transition: transform 0.3s ease;
-}
-
-#queryRotatableWrapper,
-#floatingASINImage {
-  transform-origin: center center;
-}
 
 element.style {
     color: rgb(0, 102, 204);
@@ -421,7 +437,8 @@ element.style {
     <label for="hitIdInput">HITId :</label>
 	<input type="text" id="hitIdInput" placeholder="Tapez ou collez un HITId ici" autocomplete="off" style="width: 300px;" />
     <button id="btnShowHIT">Afficher</button>
-	<button id="btnSaveData">Terminer</button>
+	<button id="done">Terminer</button>
+	<button id="btnSaveData">Terminer => Google Sheet</button>
 	<label for="sheetUrlInput">URL Google Sheet cible :</label>
     <input type="text" id="sheetUrlInput" placeholder="Entrez l'URL du fichier Google Sheet" style="width: 400px;" />
 	<button id="verifierdata">Verifier</button>
@@ -456,7 +473,7 @@ element.style {
               border-radius: 20px;
               box-shadow: 0 0 15px rgba(0,0,0,0.3);">
     <div class="icon" style="margin-bottom: 15px;">
-      <img src="https://cdn.pixabay.com/animation/2023/03/12/21/17/21-17-57-902_512.gif"
+      <img src="vercel_sablier.gif"
            alt="Chargement..." width="120">
     </div>
     <div id="progressText" style="font-weight: bold; font-size: 18px;">Chargement...</div>
@@ -479,7 +496,7 @@ element.style {
   <h3>📌 Informations</h3>
   <p>Ici, tu peux mettre des détails complémentaires.</p>
 </div>
-  <img id="floatingASINImage" />
+  <canvas id="floatingASINCanvas"></canvas>
 
 <div class="table-wrapper" display="none">
 <table id="tableauResultat" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; display: none;">
@@ -506,7 +523,8 @@ element.style {
     <!-- Les lignes seront ajoutées ici dynamiquement -->
   </tbody>
 </table>
-<button id="btnSaveData1">Terminer</button>
+<button id="btnSaveData1">Terminer => Google Sheet</button>
+<button id="btnSaveData2">Terminer</button>
 
 <div id="progressOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#ffffffcc; z-index:9999; justify-content:center; align-items:center; flex-direction:column;">
   <div id="progressBox">
@@ -526,6 +544,7 @@ element.style {
 // VARIABLES GLOBALES
 let currentHitRow = null; // accessible partout
 let ATTRIBUTES = [];      // sera défini dynamiquement selon le type
+const allTitles = []; // à définir en dehors, scope global ou dans showHitid
 
 let tsvDataRaw = [];
 let currentFileName = "";
@@ -813,7 +832,7 @@ asinList.forEach(asin => {
   } else {
     asinLink.href = `https://${domain}/dp/${asin}`;
     asinLink.target = "_blank";
-	//asinText.textContent = asin;
+	asinText.textContent = asin;
 	asinLink.textContent = asin;
 	asinLink.style.color = "#0066cc";
     asinLink.style.fontSize = "15px";
@@ -828,6 +847,7 @@ asinList.forEach(asin => {
   if (asinMatch) {
     // Affichage du titre
     if (asinMatch.product_title) {
+	  allTitles.push(asinMatch.product_title);
       const title = document.createElement('div');
       title.textContent = asinMatch.product_title;
       title.style.fontSize = "15px";
@@ -1028,24 +1048,27 @@ if (ATTRIBUTES.includes("relevance_label")) {
 
     asinBlock.appendChild(col);
   }
-
+  recolorTitles(hitContainer);
   hitContainer.appendChild(asinBlock);
 });
 
-  
+  //ato ambony ato
  // REMPLISSAGE DES INFORMATIONS NECESSAIRES
 // === Mise à jour des informations dans #informations ===
 const infoDiv = document.getElementById("informations");
 if (infoDiv) {
   const row = rows[0];
   const type = window.detectedType || 'Inconnu';
-  const batch = row['Source.name'] || 'Non spécifié';
+  const batch = row['Title'] || 'Non spécifié';/// AVERENO Source.name raha TSY FICHIER COMPILE TSV no atao
   const hitId = row['HITId'] || '';
   const queryURL = row['Input.imageURL'] || '';
   const textContent = row['Input.content'] || '---';
   const text = row['Input.text'] || '';
   const textURL = row['Input.textURL'] || '';
+  const rawTextURL = row['Input.textURL']; // peut être undefined, null ou "null"
+  const hasTextURL = rawTextURL !== undefined && rawTextURL !== null && String(rawTextURL).trim().toLowerCase() !== 'null';
   const queryASIN = row['Input.queryProductASIN']; // 🆕 Vérifie si la colonne existe
+  //console.log(queryASIN);
 
   let html = `
     <b>Type :</b> ${type}<br>
@@ -1054,23 +1077,28 @@ if (infoDiv) {
     <b>Query URL :</b> <a href="${queryURL}" target="_blank">${queryURL}</a><br>
   `;
 
-// 🆕 Affichage ASIN QUERY s’il est défini
-if (row['Input.queryASIN']) {
-  const queryASIN = row['Input.queryASIN'];
-  const marketplace = row['Input.marketplace']?.toUpperCase?.() || 'US';
+// 🆕 Affichage ASIN QUERY avec gestion du cas "null" en texte
+const rawQueryASIN = row['Input.queryProductASIN']; // peut être undefined ou "null"
+const hasASIN = rawQueryASIN !== undefined && rawQueryASIN !== null && String(rawQueryASIN).trim().toLowerCase() !== 'null';
+
+if (hasASIN) {
+  const queryASIN = String(rawQueryASIN).trim();
+  const marketplace = String(row['Input.marketplace'] || 'US').toUpperCase();
   const domains = {
     IN: 'www.amazon.in', FR: 'www.amazon.fr', UK: 'www.amazon.co.uk',
     DE: 'www.amazon.de', IT: 'www.amazon.it', US: 'www.amazon.com'
   };
   const domain = domains[marketplace] || 'www.amazon.com';
-  const asinHref = `https://${domain}/dp/${queryASIN}`;
+  const asinHref = `https://${domain}/dp/${encodeURIComponent(queryASIN)}`;
 
-  html += `<b>ASIN QUERY :</b> <a href="${asinHref}" target="_blank">${queryASIN}</a><br>`;
+  html += `<b>ASIN QUERY :</b> <a href="${asinHref}" target="_blank" rel="noopener noreferrer">${queryASIN}</a><br>`;
 
   const query_title = row['Input.queryProductTitle'];
   if (query_title) {
     html += `<div style="margin-left:10px; font-style:italic;">${query_title}</div>`;
   }
+} else {
+  html += `<b>ASIN QUERY :</b> Batch non-LMT<br>`;
 }
 
   if (text) html += `<b>Text :</b> ${text}<br>`;
@@ -1084,31 +1112,31 @@ if (row['Input.queryASIN']) {
   infoDiv.innerHTML = html;
   infoDiv.style.display = 'block';
 
-  // 🆕 Chargement du contenu textURL si présent
-  if (textURL) {
-    fetch(textURL)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
-        return response.text();
-      })
-      .then(data => {
-        const pre = document.createElement('pre');
-        pre.textContent = data.slice(0, 1000);
-        pre.style.maxHeight = '300px';
-        pre.style.overflowY = 'auto';
-        pre.style.background = '#f4f4f4';
-        pre.style.border = '1px solid #ccc';
-        pre.style.padding = '6px';
-        pre.style.marginTop = '8px';
-        pre.style.fontSize = '16px';
-        pre.style.fontWeight = 'bold';
-        infoDiv.appendChild(pre);
-      })
-      .catch(err => {
-        //console.warn("❌ Erreur lors du chargement du textURL :", err);
-		
-      });
-  }
+// 🆕 Chargement du contenu textURL si présent et valide
+if (hasTextURL) {
+  const textURL = String(rawTextURL).trim();
+  fetch(textURL)
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+      return response.text();
+    })
+    .then(data => {
+      const pre = document.createElement('pre');
+      pre.textContent = data.slice(0, 1000);
+      pre.style.maxHeight = '300px';
+      pre.style.overflowY = 'auto';
+      pre.style.background = '#f4f4f4';
+      pre.style.border = '1px solid #ccc';
+      pre.style.padding = '6px';
+      pre.style.marginTop = '8px';
+      pre.style.fontSize = '16px';
+      pre.style.fontWeight = 'bold';
+      infoDiv.appendChild(pre);
+    })
+    .catch(err => {
+      // console.warn("❌ Erreur lors du chargement du textURL :", err);
+    });
+}
 }
 
 }
@@ -1151,43 +1179,145 @@ if (row['Input.queryASIN']) {
 
   return grouped;
 }
+let loadedImage = null;
+let currentAngle = 0;
+let targetAngle = 0;
+let currentScale = 1;
+let isAnimating = false;
 
-    function showASINImage(src) {
-      const img = document.getElementById("floatingASINImage");
-      img.src = src;
-      img.style.display = "block";
-      makeDraggableAndZoomable(img, true);
-    }
+function showASINImage(src) {
+  const canvas = document.getElementById("floatingASINCanvas");
+  const ctx = canvas.getContext("2d");
+  const img = new Image();
 
-    function makeDraggableAndZoomable(img, escapable) {
-      let isDragging = false, startX, startY;
-      img.addEventListener('mousedown', e => {
-        isDragging = true;
-        startX = e.clientX - img.offsetLeft;
-        startY = e.clientY - img.offsetTop;
-        img.style.cursor = 'grabbing';
-        e.preventDefault();
-      });
-      document.addEventListener('mousemove', e => {
-        if (!isDragging) return;
-        img.style.left = `${e.clientX - startX}px`;
-        img.style.top = `${e.clientY - startY}px`;
-      });
-      document.addEventListener('mouseup', () => {
-        isDragging = false;
-        img.style.cursor = 'move';
-      });
-      img.addEventListener('wheel', e => {
-        e.preventDefault();
-        const scale = e.deltaY < 0 ? 1.1 : 0.9;
-        img.width *= scale;
-      });
-      if (escapable) {
-        document.addEventListener('keydown', e => {
-          if (e.key === "Escape") img.style.display = "none";
-        });
-      }
+  img.onload = function () {
+    loadedImage = img;
+    currentAngle = 0;
+    targetAngle = 0;
+    currentScale = 1;
+    resizeCanvas(canvas, img.width, img.height);
+    drawImage(ctx, loadedImage, currentAngle, currentScale);
+  };
+
+  img.src = src;
+  canvas.style.display = "block";
+
+  makeDraggableAndZoomable(canvas, true);
+
+// Zoom avec molette
+canvas.onwheel = (e) => {
+  e.preventDefault();
+
+  const zoomIntensity = 0.05;  // réduit la vitesse de zoom
+
+  // Position et taille avant zoom
+  const rect = canvas.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  // Modification du scale
+  if (e.deltaY < 0) {
+    currentScale += zoomIntensity;
+  } else {
+    currentScale = Math.max(0.1, currentScale - zoomIntensity);
+  }
+
+  // Nouvelle taille
+  const newWidth = loadedImage.width * currentScale;
+  const newHeight = loadedImage.height * currentScale;
+
+  // Redimensionne le canvas
+  resizeCanvas(canvas, newWidth, newHeight);
+
+  // Positionne le canvas pour garder le centre fixe
+  canvas.style.position = 'fixed'; // important pour pouvoir ajuster left/top
+  canvas.style.left = (centerX - newWidth / 2) + 'px';
+  canvas.style.top = (centerY - newHeight / 2) + 'px';
+
+  // Redessine l’image après mise à jour visuelle
+  requestAnimationFrame(() => {
+    drawImage(ctx, loadedImage, currentAngle, currentScale);
+  });
+};
+
+
+
+  // Rotation avec double clic (animée)
+  canvas.ondblclick = () => {
+    targetAngle += 90;
+    if (!isAnimating) animateRotation(ctx);
+  };
+}
+
+function resizeCanvas(canvas, width, height) {
+  canvas.width = width;
+  canvas.height = height;
+}
+
+function drawImage(ctx, img, angle, scale) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.save();
+  ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
+  ctx.rotate(angle * Math.PI / 180);
+  ctx.scale(scale, scale);
+  ctx.drawImage(img, -img.width / 2, -img.height / 2);
+  ctx.restore();
+}
+
+function animateRotation(ctx) {
+  isAnimating = true;
+  const step = () => {
+    const diff = targetAngle - currentAngle;
+    if (Math.abs(diff) < 0.5) {
+      currentAngle = targetAngle;
+      drawImage(ctx, loadedImage, currentAngle, currentScale);
+      isAnimating = false;
+      return;
     }
+    currentAngle += diff * 0.1; // interpolation douce
+    drawImage(ctx, loadedImage, currentAngle, currentScale);
+    requestAnimationFrame(step);
+  };
+  step();
+}
+
+function makeDraggableAndZoomable(canvas, escapable) {
+  let isDragging = false, startX, startY;
+  canvas.addEventListener('mousedown', e => {
+    isDragging = true;
+    startX = e.clientX - canvas.offsetLeft;
+    startY = e.clientY - canvas.offsetTop;
+    canvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    canvas.style.left = `${e.clientX - startX}px`;
+    canvas.style.top = `${e.clientY - startY}px`;
+  });
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    canvas.style.cursor = 'move';
+  });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    currentScale *= e.deltaY < 0 ? 1.1 : 0.9;
+    redrawCanvas(canvas, currentAngle, currentScale);
+  });
+  if (escapable) {
+    document.addEventListener('keydown', e => {
+      if (e.key === "Escape") canvas.style.display = "none";
+      if (e.key === "ArrowLeft") { currentAngle -= 5; redrawCanvas(canvas, currentAngle, currentScale); }
+      if (e.key === "ArrowRight") { currentAngle += 5; redrawCanvas(canvas, currentAngle, currentScale); }
+    });
+  }
+}
+
+function redrawCanvas(canvas, angle, scale) {
+  if (!loadedImage) return; // pas d'image chargée => rien faire
+  const ctx = canvas.getContext("2d");
+  drawImage(ctx, loadedImage, angle, scale);
+}
 	
 	
 	
@@ -1287,8 +1417,8 @@ document.getElementById('btnSaveData').addEventListener('click', async () => {
 	}
 
 	// ✅ Debug
-	console.log(`🔍 ASIN: ${asinKey}`);
-	console.log(`📌 Jugement du juge:`, jugeCheckedValues);
+	//console.log(`🔍 ASIN: ${asinKey}`);
+	//console.log(`📌 Jugement du juge:`, jugeCheckedValues);
 
     if (jugeCheckedValues.length === 0) {
       erreurs.push(`${asinKey} (aucun verdict coché)`);
@@ -1360,11 +1490,11 @@ try {
   const asinMatch = matchArray.find(m => m.asin === asinKey);
 
   // 🔍 Ajout des logs pour débogage
-  console.log('🔍 asinMatch =', asinMatch);
+  //console.log('🔍 asinMatch =', asinMatch);
   if (asinMatch) {
-    console.log('📸 asinMatch.image_url =', asinMatch.image_url);
+    //console.log('📸 asinMatch.image_url =', asinMatch.image_url);
   } else {
-    console.log('❌ Aucun asinMatch trouvé pour asinKey =', asinKey);
+    //console.log('❌ Aucun asinMatch trouvé pour asinKey =', asinKey);
   }
 
   if (asinMatch && asinMatch.image_url) {
@@ -1372,7 +1502,7 @@ try {
   }
 } catch (e) {
   console.warn(`❌ Erreur parsing matches pour ASIN ${asinKey}`, e);
-  alert("ato ve zany");
+  //alert("ato ve zany");
 }
 
       const row = document.createElement('tr');
@@ -1401,7 +1531,7 @@ try {
     });
   }
 
-  tableau.style.display = 'table';
+  tableau.style.display = 'none';
   gotosheet(); // 🚀 Lance l'enregistrement
 });
 
@@ -1463,6 +1593,7 @@ const checkUrl = `${gasWebAppUrl}?sheetUrl=${encodeURIComponent(sheetUrl)}&hitId
     }
   } catch (err) {
     alert('❌ Erreur lors de la vérification de doublon : ' + err.message);
+	scrollPageToTop(); // ici on scrolle vers le haut
     return;
   }
 
@@ -1523,6 +1654,8 @@ const checkUrl = `${gasWebAppUrl}?sheetUrl=${encodeURIComponent(sheetUrl)}&hitId
   // Attente pour afficher le message final, puis fermeture de l'overlay
   await new Promise(resolve => setTimeout(resolve, 1000));
   overlay.style.display = 'none';
+  scrollPageToTop(); // ici on scrolle vers le haut
+
 }
 
 
@@ -1822,6 +1955,232 @@ document.addEventListener('keydown', function (event) {
     controls.style.display = isHidden ? 'block' : 'none';
   }
 });
+
+//FONCTION RECOLORIAGE TITRE
+function recolorTitles(container) {
+  if (!container) {
+    console.warn('container is undefined in recolorTitles');
+    return;
+  }
+  if (allTitles.length === 0) return;
+
+  const tokenizedTitles = allTitles.map(title =>
+    title.toLowerCase().match(/\b[\w\d\.]+\b/g) || []
+  );
+
+  function intersection(arrays) {
+    return arrays.reduce((a, b) => a.filter(c => b.includes(c)));
+  }
+
+  const commonWords = intersection(tokenizedTitles);
+  if (commonWords.length === 0) return;
+
+  // Sélectionne tous les div titres dans le container
+  const titleDivs = container.querySelectorAll('.asin-info > div');
+  titleDivs.forEach((div, i) => {
+    div.innerHTML = highlightCommonWords(allTitles[i], commonWords);
+  });
+}
+
+function highlightCommonWords(title, commonWords) {
+  if (commonWords.length === 0) return title;
+  const regex = new RegExp(`\\b(${commonWords.join('|')})\\b`, 'gi');
+  return title.replace(regex, match => `<span style="background: #FFEB3B; border-bottom: 2px solid #FBC02D;">${match}</span>`);
+}
+
+
+//ENREGISTREMENT TSOTRA
+//FONCTION DRESSAGE TABLEAU RESULTAT
+document.getElementById('done').addEventListener('click', async () => {
+  const asinBlocks = document.querySelectorAll('.asin-block');
+  const tableau = document.getElementById('tableauResultat');
+  const tbody = tableau.querySelector('tbody');
+  tbody.innerHTML = '';
+
+  if (!currentHitRow) {
+    alert("❗ Erreur : aucune donnée HIT disponible.");
+    return;
+  }
+
+  let erreurs = [];
+  const assignments = {};
+
+  asinBlocks.forEach(asinBlock => {
+    const asinKey = asinBlock.querySelector('.asin-info span')?.textContent.trim().replace("ASIN:", "").trim() || '[ASIN inconnu]';
+	//const asinKey = asinBlock.getAttribute('data-asin') || '[ASIN inconnu]';
+	if (!asinKey || asinKey === '[ASIN inconnu]') {
+  console.warn("⚠️ ASIN manquant dans le bloc :", asinBlock);
+}
+	
+
+    // ✅ Récupérer les valeurs cochées (checkboxes) et relevance_label
+	const jugeColumn = asinBlock.querySelector('.worker-column.judge');
+	let jugeCheckedValues = [];
+
+	if (jugeColumn) {
+	  const jugeCheckboxes = jugeColumn.querySelectorAll('input.juge-checkbox:checked');
+	  jugeCheckedValues = Array.from(jugeCheckboxes).map(cb => cb.value);
+
+	  // 🛠 Sélecteur dynamique pour relevance_label
+	  const relevanceSelect = jugeColumn.querySelector(`select[name="${asinKey}_relevance_label"]`);
+	  if (relevanceSelect && relevanceSelect.value && relevanceSelect.value !== 'none') {
+		jugeCheckedValues.push(relevanceSelect.value);
+	  }
+	} else {
+	  console.warn(`⚠️ Colonne .worker-column.judge introuvable pour ASIN ${asinKey}`);
+	}
+
+	// ✅ Debug
+	//console.log(`🔍 ASIN: ${asinKey}`);
+	//console.log(`📌 Jugement du juge:`, jugeCheckedValues);
+
+    if (jugeCheckedValues.length === 0) {
+      erreurs.push(`${asinKey} (aucun verdict coché)`);
+      return;
+    }
+
+    const workerCols = asinBlock.querySelectorAll('.worker-column:not(.judge)');
+
+    workerCols.forEach(col => {
+      const workerId = col.querySelector('b')?.textContent.trim() || '[workerId inconnu]';
+
+      const assignmentDiv = Array.from(col.querySelectorAll('div')).find(d => d.textContent.includes('AssignmentId:'));
+      const assignmentId = assignmentDiv ? assignmentDiv.textContent.replace('AssignmentId:', '').trim() : '';
+
+      const commentText = col.querySelector('textarea')?.value.trim() || '';
+
+      if (!workerId || !assignmentId) {
+        erreurs.push(`${asinKey} / ${workerId} (manque workerId ou assignmentId)`);
+        return;
+      }
+
+      if (!assignments[assignmentId]) assignments[assignmentId] = [];
+
+      const assinJson = Array.from(col.querySelectorAll('.majority, .minority'))
+        .map(d => d.textContent.trim())
+        .filter(Boolean)
+        .join(', ');
+
+      assignments[assignmentId].push({
+        asinKey,
+        assignmentId,
+        workerId,
+        jugeCheckedValues,
+        commentText,
+        assinJson,
+        block: asinBlock
+      });
+    });
+  });
+
+  if (erreurs.length > 0) {
+    alert("⚠️ Il y a " + erreurs.length + " erreur(s) :\n\n" + erreurs.join('\n'));
+    return;
+  }
+
+  for (const [assignmentId, items] of Object.entries(assignments)) {
+    items.forEach(item => {
+      const {
+        asinKey,
+        assignmentId,
+        workerId,
+        jugeCheckedValues,
+        commentText,
+        assinJson,
+        block
+      } = item;
+
+      const hitId = currentHitRow['HITId'] || 'inconnu';
+      const inputImageURL = currentHitRow['Input.imageURL'] || '';
+      const inputBBox = currentHitRow['Input.bbox'] || '';
+      const inputContent = currentHitRow['Input.content'] || '';
+      const answerOutput = currentHitRow['Answer.output_data'] || '';
+      const inputMatches = currentHitRow['Input.matches'] || '{}';
+      const marketplace = currentHitRow['Input.marketplace'] || '';
+
+      let amazonImage = '';
+try {
+  const matchArray = JSON.parse(inputMatches);
+  const asinMatch = matchArray.find(m => m.asin === asinKey);
+
+  // 🔍 Ajout des logs pour débogage
+  //console.log('🔍 asinMatch =', asinMatch);
+  if (asinMatch) {
+    //console.log('📸 asinMatch.image_url =', asinMatch.image_url);
+  } else {
+    //console.log('❌ Aucun asinMatch trouvé pour asinKey =', asinKey);
+  }
+
+  if (asinMatch && asinMatch.image_url) {
+    amazonImage = asinMatch.image_url;
+  }
+} catch (e) {
+  console.warn(`❌ Erreur parsing matches pour ASIN ${asinKey}`, e);
+}
+
+      const row = document.createElement('tr');
+      [
+        hitId,
+        assignmentId,
+        workerId,
+        inputImageURL,
+        inputBBox,
+        inputContent,
+        answerOutput,
+        amazonImage,
+        marketplace,
+        inputMatches,
+        asinKey,
+        assinJson,
+        jugeCheckedValues.join(','),
+        commentText
+      ].forEach(val => {
+        const td = document.createElement('td');
+        td.textContent = val;
+        row.appendChild(td);
+      });
+
+      tbody.appendChild(row);
+    });
+  }
+
+  tableau.style.display = 'none';
+  // Sélectionner uniquement le tbody du tableau (les lignes de données sans l'en-tête)
+//const tbody = tableau.querySelector('tbody');
+const range = document.createRange();
+range.selectNodeContents(tbody); // on sélectionne uniquement le contenu de tbody
+
+// Vider les sélections précédentes puis sélectionner ce range
+const selection = window.getSelection();
+selection.removeAllRanges();
+selection.addRange(range);
+
+// Copier dans le presse-papiers
+  const successful = document.execCommand('copy');
+  if (successful) {
+  showNotification('✅ Jugement terminé, résultats copiés dans le presse-papiers.');
+  scrollPageToTop(); // ici on scrolle vers le haut
+} else {
+  alert('❌ Échec de la copie automatique. Veuillez copier manuellement.');
+}
+
+// Nettoyer la sélection (optionnel)
+selection.removeAllRanges();
+});
+
+
+//SIMULATION BOUTON TERMINE SIMPLE (DU BAS)
+document.getElementById('btnSaveData2').addEventListener('click', () => {
+  document.getElementById('done').click();
+});
+
+//SCROOL VERS LE top
+function scrollPageToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth' // effet de défilement fluide
+  });
+}
 
   </script>
 </html>
