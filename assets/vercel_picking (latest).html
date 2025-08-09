@@ -62,22 +62,37 @@ body {
 
 #informations {
   position: fixed;
-  display: none;
   top: 120px;
   left: 0.5cm;
   width: 14cm;
   min-height: 50px;
   max-height: 400px;
   background: #f1f1f1;
-  padding: 18px 13px;
+  padding: 0; /* Supprime le padding ici */
   border: 3px solid #888;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   font-size: 14px;
   z-index: 999;
-  overflow: hidden; /* 🚫 aucune scrollbar */
   line-height: 1.4;
-  overflow: hidden;
+  resize: both;
+  overflow: auto;
+  cursor: default;
+  display: none;
+}
+
+#dragHeader {
+  cursor: grab;
+  padding: 18px 13px; /* tu remets le padding ici */
+  background: #ccc;
+  border-bottom: 1px solid #aaa;
+  user-select: none;
+}
+
+#infoContent {
+  padding: 18px 13px; /* même padding que tu avais dans #informations */
+  overflow-y: auto;
+  max-height: 340px; /* max-height total - header */
 }
 
 
@@ -95,7 +110,8 @@ body {
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(50, 50, 50, 0.3);
   gap: 15px;
-  width: 100%;
+  width: 100vw;
+  box-sizing: border-box;
 }
 
 /* Infos produit */
@@ -332,7 +348,7 @@ label select {
 #btnSaveData1{
   position: fixed;
   bottom: 40px;
-  Right: 0%;
+  left: 170px;
   transform: translateX(-50%);
   background-color: #28a745;
   color: white;
@@ -346,7 +362,7 @@ label select {
 }
 #btnSaveData2 {
   position: fixed;
-  bottom: 40px;
+  bottom: 100px;
   left: 100px;
   transform: translateX(-50%);
   background-color: #28a745;
@@ -492,9 +508,9 @@ element.style {
 <div id="notifMessage" class="notification" style="display:none;"></div>
 
 </body>
-<div id="informations">
-  <h3>📌 Informations</h3>
-  <p>Ici, tu peux mettre des détails complémentaires.</p>
+<div id="informations" style="display:none; position: fixed; ...">
+  <div id="dragHeader">Informations QUERY</div>
+  <div id="infoContent"></div>
 </div>
   <canvas id="floatingASINCanvas"></canvas>
 
@@ -1114,7 +1130,10 @@ if (hasASIN) {
   }
 
   html += `<b>Input content :</b> ${textContent}<br>`;
-  infoDiv.innerHTML = html;
+  //infoDiv.innerHTML = html;
+  const contentDiv = document.getElementById('infoContent');
+	contentDiv.innerHTML = html;
+	infoDiv.style.display = 'block';
   infoDiv.style.display = 'block';
 
 // 🆕 Chargement du contenu textURL si présent et valide
@@ -2225,5 +2244,77 @@ function scrollPageToTop() {
   });
 }
 
+//DEPLACEMENT DU ZONE INFORMATION QUERY²
+const info = document.getElementById('informations');
+const dragHeader = document.getElementById('dragHeader');
+
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let elemStartLeft = 0;
+let elemStartTop = 0;
+
+dragHeader.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  const rect = info.getBoundingClientRect();
+  elemStartLeft = rect.left;
+  elemStartTop = rect.top;
+  dragHeader.style.cursor = 'grabbing';
+  e.preventDefault(); // empêche la sélection de texte
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const deltaX = e.clientX - dragStartX;
+  const deltaY = e.clientY - dragStartY;
+  info.style.left = (elemStartLeft + deltaX) + 'px';
+  info.style.top = (elemStartTop + deltaY) + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    dragHeader.style.cursor = 'grab';
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const info = document.getElementById('informations');
+  const dragHeader = document.getElementById('dragHeader');
+
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let elemStartLeft = 0;
+  let elemStartTop = 0;
+
+  dragHeader.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    const rect = info.getBoundingClientRect();
+    elemStartLeft = rect.left;
+    elemStartTop = rect.top;
+    dragHeader.style.cursor = 'grabbing';
+    e.preventDefault(); // Empêche la sélection du texte pendant le drag
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - dragStartX;
+    const deltaY = e.clientY - dragStartY;
+    info.style.left = (elemStartLeft + deltaX) + 'px';
+    info.style.top = (elemStartTop + deltaY) + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      dragHeader.style.cursor = 'grab';
+    }
+  });
+});
   </script>
 </html>
