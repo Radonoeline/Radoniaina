@@ -421,15 +421,16 @@ label select {
   transform: translateY(-100%);
 }
 
-#tableauResultat {
+#tableaudetailsasin {
   width: 100%;
+  display:block;
   border-collapse: collapse;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 13px;
   table-layout: fixed; /* Important pour que overflow fonctionne */
 }
 
-#tableauResultat th {
+#tableaudetailsasin th {
   background-color: #000;
   color: #fff;
   padding: 8px;
@@ -437,7 +438,7 @@ label select {
   border: 1px solid #ddd;
 }
 
-#tableauResultat td {
+#tableaudetailsasin td {
   padding: 6px 8px;
   border: 1px solid #ddd;
   overflow: hidden;
@@ -445,11 +446,11 @@ label select {
   white-space: nowrap;
 }
 
-#tableauResultat tr:nth-child(even) {
+#tableaudetailsasin tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-#tableauResultat tr:hover {
+#tableaudetailsasin tr:hover {
   background-color: #f1f1f1;
 }
 
@@ -477,6 +478,7 @@ element.style {
 	<button id="verifierdata">Verifier</button>
 	<p id="verifMessage"></p>
 	<input type="text" id="automatisme" placeholder="URL de votre script Apps Script (https://script.google.com/macros/s/...)">
+	<div id="scoreSummary" style="margin-top: 10px; font-weight: bold; font-size: 1.1em;"></div>
 
 
 	<div id="msgBox"></div>
@@ -531,8 +533,7 @@ element.style {
 </div>
   <canvas id="floatingASINCanvas"></canvas>
 
-<div class="table-wrapper" display="none">
-<table id="tableauResultat" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; display: none;">
+<table id="tableaudetailsasin" style="width: 100%; border-collapse: collapse; margin-bottom: 20px; display: none;">
   <thead>
     <tr>
       <th>hitid</th>
@@ -552,10 +553,15 @@ element.style {
     </tr>
   </thead>
   <tbody>
-  </div>
     <!-- Les lignes seront ajoutées ici dynamiquement -->
   </tbody>
+
 </table>
+<table id="brute_table" class="hidden"></table>
+
+
+
+
 <button id="btnSaveData1">Terminer => Google Sheet</button>
 <button id="btnSaveData2">Terminer</button>
 
@@ -1428,7 +1434,7 @@ function enableImageRotation(imgId) {
 //FONCTION DRESSAGE TABLEAU RESULTAT
 document.getElementById('btnSaveData').addEventListener('click', async () => {
   const asinBlocks = document.querySelectorAll('.asin-block');
-  const tableau = document.getElementById('tableauResultat');
+  const tableau = document.getElementById('tableaudetailsasin');
   const tbody = tableau.querySelector('tbody');
   tbody.innerHTML = '';
 
@@ -1602,7 +1608,7 @@ async function gotosheet() {
 
   const hitId = currentHitRow['HITId'];
 
-  const tableau = document.getElementById('tableauResultat');
+  const tableau = document.getElementById('tableaudetailsasin');
   if (!tableau) {
     alert('❌ Tsy hita mihintsy ilay tableau, sa ahoana hozy enao?');
     return;
@@ -2100,7 +2106,7 @@ function recolorTitles(container) {
 //FONCTION DRESSAGE TABLEAU RESULTAT
 document.getElementById('done').addEventListener('click', async () => {
   const asinBlocks = document.querySelectorAll('.asin-block');
-  const tableau = document.getElementById('tableauResultat');
+  const tableau = document.getElementById('tableaudetailsasin');
   const tbody = tableau.querySelector('tbody');
   tbody.innerHTML = '';
 
@@ -2238,6 +2244,8 @@ document.getElementById('done').addEventListener('click', async () => {
   }
 
   tableau.style.display = 'none';
+  //APPEL UTILITIES
+  processuniquefromtable();
 
   // Construire le texte TSV uniquement avec les lignes du tbody (sans les en-têtes)
   const rows = tbody.querySelectorAll('tr');
@@ -2349,5 +2357,423 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+function processuniquefromtable() {
+    const sourceTable = document.getElementById('tableaudetailsasin');
+    if (!sourceTable) {
+        alert('Le tableau "tableaudetailsasin" est introuvable.');
+        return;
+    }
+
+    const brute_table = document.getElementById('brute_table');
+    if (!brute_table) {
+        alert('Le tableau "brute_table" est introuvable.');
+        return;
+    }
+
+    // Récupérer les headers (en minuscules, trim)
+    const headers = Array.from(sourceTable.querySelectorAll('thead th')).map(th => th.textContent.trim().toLowerCase());
+
+    // Vérifier que les headers nécessaires sont présents
+    const necessaryHeaders = ['hitid', 'assignmentid', 'workerid', 'key', 'assin_json', 'assin_juge_json'];
+    const headersPresent = necessaryHeaders.every(h => headers.includes(h));
+    if (!headersPresent) {
+        alert('Les entêtes nécessaires ne sont pas toutes présentes dans le tableau.');
+        console.error('Headers trouvés:', headers);
+        console.error('Entêtes attendues:', necessaryHeaders);
+        return;
+    }
+
+    // Extraire les données du tableau en tableau d'objets
+    const tbodyRows = sourceTable.querySelectorAll('tbody tr');
+    const parsedData = [];
+
+    tbodyRows.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        if (cells.length !== headers.length) return; // Ignore lignes incorrectes
+        const rowObj = {};
+        headers.forEach((header, i) => {
+            rowObj[header] = cells[i].textContent.trim();
+        });
+        parsedData.push(rowObj);
+    });
+
+    window.annotatedResultData = parsedData;
+
+    // Détection hasFourniture et hasRelevanceLabel (adaptable)
+const explicitAttributes = [
+    "asin_image_not_load",
+    "color",
+    "extra_features",
+    "has_product_difference",
+    "is_wrong_bundle",
+    "is_wrong_characteristic",
+    "is_wrong_packaging_overlay",
+    "is_wrong_size_or_count",
+    "location",
+    "material",
+    "no_difference",
+    "pattern",
+    "relevance_label",
+    "shape",
+    "size",
+    "support_type",
+    "wrong_age_group",
+    "wrong_category",
+	"exact_match",
+	"cannot_judge",
+	"possible_substitute",
+	"irrelevant"
+];
+
+// Pour forcer un type fixe (par exemple "CS") sans détection, on peut faire :
+const detectedType = "CS";  
+const backgroundColor = '#e6f7ff';
+
+window.detectedType = detectedType;
+
+
+    const sortedUniqueKeys = explicitAttributes.sort((a, b) => a.localeCompare(b));
+
+    // Recréation du tableau brute_table (caption + thead + tbody)
+    brute_table.innerHTML = '';
+
+    const caption = brute_table.createCaption();
+    caption.textContent = 'ANALYSE GLOBAL DES RESULTATS VENANT DE LOOKERS STUDIO';
+
+    // Construction des en-têtes
+    const displayHeaders = necessaryHeaders.concat(['smarter', 'juge']);
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+
+    displayHeaders.forEach(h => {
+        const th = document.createElement('th');
+        th.textContent = h;
+        headerRow.appendChild(th);
+    });
+
+    sortedUniqueKeys.forEach(key => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        headerRow.appendChild(th);
+    });
+
+    ['Jugement ASIN', 'Jugement Assignement', 'Jugement HitId'].forEach(label => {
+        const th = document.createElement('th');
+        th.textContent = label;
+        headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    brute_table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    brute_table.appendChild(tbody);
+
+    // Construction des lignes
+    parsedData.forEach((row, index) => {
+        const assinJson = row.assin_json ? row.assin_json.split(',') : [];
+        const jugeJson = row.assin_juge_json ? row.assin_juge_json.split(',') : [];
+
+        row.smarter = assinJson.join(',');
+        row.juge = jugeJson.join(',');
+
+        const rowElement = document.createElement('tr');
+
+        displayHeaders.forEach(header => {
+            const cell = document.createElement('td');
+            cell.textContent = row[header] || '';
+            rowElement.appendChild(cell);
+        });
+
+        sortedUniqueKeys.forEach(() => {
+            const cell = document.createElement('td');
+            cell.textContent = '';
+            rowElement.appendChild(cell);
+        });
+
+        // Cellules jugements vides à remplir plus tard
+        for (let i = 0; i < 3; i++) {
+            const cell = document.createElement('td');
+            cell.textContent = '';
+            rowElement.appendChild(cell);
+        }
+
+        tbody.appendChild(rowElement);
+        row.index = index; // stocker index pour référence dans jugements
+    });
+
+    // Regroupements par key, assignmentId, hitid
+    const groupedByKey = parsedData.reduce((acc, row) => {
+        if (!acc[row.key]) acc[row.key] = [];
+        acc[row.key].push(row);
+        return acc;
+    }, {});
+
+    const groupedByAssignment = parsedData.reduce((acc, row) => {
+        if (!acc[row.assignmentid]) acc[row.assignmentid] = [];
+        acc[row.assignmentid].push(row);
+        return acc;
+    }, {});
+
+    const groupedByHit = parsedData.reduce((acc, row) => {
+        if (!acc[row.hitid]) acc[row.hitid] = [];
+        acc[row.hitid].push(row);
+        return acc;
+    }, {});
+
+    // Calcul Jugement ASIN par groupe key
+    Object.keys(groupedByKey).forEach(key => {
+        const group = groupedByKey[key];
+        const totalRows = group.length;
+
+        group.forEach(row => {
+            const rowIndex = row.index;
+            const rowElement = tbody.rows[rowIndex];
+
+            sortedUniqueKeys.forEach(attr => {
+                let cellValue = '';
+                const smarterHasAttr = row.smarter.includes(attr);
+                const jugeHasAttr = row.juge.includes(attr);
+                const countSmarterCorrect = group.filter(r => r.smarter.includes(attr) && r.juge.includes(attr)).length;
+                const countSmarterIncorrect = group.filter(r => r.smarter.includes(attr) && !r.juge.includes(attr)).length;
+                const countMissing = group.filter(r => !r.smarter.includes(attr) && r.juge.includes(attr)).length;
+
+                if (smarterHasAttr && jugeHasAttr) {
+                    cellValue = countSmarterCorrect >= totalRows / 2 ? 'c_maj' : 'c_min';
+                } else if (smarterHasAttr && !jugeHasAttr) {
+                    cellValue = countSmarterIncorrect >= totalRows / 2 ? 'i_maj' : 'i_min';
+                } else if (!smarterHasAttr && jugeHasAttr) {
+                    cellValue = countMissing >= totalRows / 2 ? 'missing_maj' : 'missing_min';
+                }
+
+                const colIndex = displayHeaders.length + sortedUniqueKeys.indexOf(attr);
+                const cell = rowElement.cells[colIndex];
+                if (cell) {
+                    cell.textContent = cellValue;
+                }
+            });
+
+            // Jugement ASIN
+            const asinJudgmentIndex = displayHeaders.length + sortedUniqueKeys.length;
+            const asinJudgmentCell = rowElement.cells[asinJudgmentIndex];
+
+            const cellValues = Array.from(rowElement.cells)
+                .slice(displayHeaders.length, displayHeaders.length + sortedUniqueKeys.length)
+                .map(cell => cell.textContent);
+
+            if (cellValues.some(v => ['i_min', 'i_maj', 'missing_min', 'missing_maj'].includes(v))) {
+                asinJudgmentCell.textContent = 'ko';
+            } else if (cellValues.some(v => ['c_min', 'c_maj'].includes(v)) &&
+                !cellValues.some(v => ['i_min', 'i_maj', 'missing_min', 'missing_maj'].includes(v))) {
+                asinJudgmentCell.textContent = 'ok';
+            }
+        });
+    });
+
+    // Calcul Jugement Assignement par groupe assignmentId
+    Object.keys(groupedByAssignment).forEach(assignmentId => {
+        const assignmentGroup = groupedByAssignment[assignmentId];
+        const totalCount = assignmentGroup.length;
+
+        const okCount = assignmentGroup.filter(row => {
+            const rowIndex = row.index;
+            const rowElement = tbody.rows[rowIndex];
+            const asinJudgmentIndex = displayHeaders.length + sortedUniqueKeys.length;
+            const asinJudgmentCell = rowElement.cells[asinJudgmentIndex];
+            return asinJudgmentCell.textContent === 'ok';
+        }).length;
+
+        const assignmentJudgmentRatio = okCount / totalCount;
+        const assignmentJudgment = assignmentJudgmentRatio > 0.5 ? 'assignement_ok' : 'assignement_ko';
+
+        assignmentGroup.forEach(row => {
+            const rowIndex = row.index;
+            const rowElement = tbody.rows[rowIndex];
+            const assignmentJudgmentCellIndex = displayHeaders.length + sortedUniqueKeys.length + 1;
+            const assignmentJudgmentCell = rowElement.cells[assignmentJudgmentCellIndex];
+            assignmentJudgmentCell.textContent = assignmentJudgment;
+        });
+    });
+
+    // Calcul Jugement HitId par groupe hitid
+    Object.keys(groupedByHit).forEach(hitid => {
+        const hitGroup = groupedByHit[hitid];
+        const totalCount = hitGroup.length;
+
+        const okCount = hitGroup.filter(row => {
+            const rowIndex = row.index;
+            const rowElement = tbody.rows[rowIndex];
+            const assignmentJudgmentCellIndex = displayHeaders.length + sortedUniqueKeys.length + 1;
+            const assignmentJudgmentCell = rowElement.cells[assignmentJudgmentCellIndex];
+            return assignmentJudgmentCell.textContent === 'assignement_ok';
+        }).length;
+
+        const hitJudgmentRatio = okCount / totalCount;
+        const hitJudgment = hitJudgmentRatio > 0.5 ? 'hitid_ok' : 'hitid_ko';
+
+        hitGroup.forEach(row => {
+            const rowIndex = row.index;
+            const rowElement = tbody.rows[rowIndex];
+            const hitJudgmentCellIndex = displayHeaders.length + sortedUniqueKeys.length + 2;
+            const hitJudgmentCell = rowElement.cells[hitJudgmentCellIndex];
+            hitJudgmentCell.textContent = hitJudgment;
+        });
+    });
+
+    calculerScoreGlobale();
+}
+
+
+
+
+function calculerScoreGlobale() {
+
+  const brute_table = document.getElementById('brute_table');
+  if (!brute_table) {
+    alert('Le tableau brute_table est introuvable.');
+    return;
+  }
+
+  const headerRow = brute_table.querySelector('thead tr');
+  if (!headerRow) {
+    alert('Le tableau brute_table n\'a pas d\'en-tête (thead tr).');
+    return;
+  }
+
+  const rows = brute_table.querySelectorAll('tbody tr');
+  if (!rows || rows.length === 0) {
+    alert('Le tableau brute_table ne contient pas de lignes dans tbody.');
+    return;
+  }
+
+  const header = headerRow.getElementsByTagName('th');
+  let indexes = {};
+
+  // Construire l’index des colonnes utiles (tout en minuscules)
+  for (let i = 0; i < header.length; i++) {
+    const colName = header[i].innerText.trim().toLowerCase();
+    if (['hitid', 'assignmentid', 'jugement asin', 'jugement assignement', 'jugement hitid'].includes(colName)) {
+      indexes[colName] = i;
+    }
+  }
+
+  if (indexes['hitid'] === undefined || indexes['jugement hitid'] === undefined) {
+    alert('Colonnes "hitid" ou "jugement hitid" manquantes dans le tableau.');
+    return;
+  }
+
+  let hitSet = new Set();
+  let hitKOSet = new Set();
+  let attributeCounts = {
+    correct_majority: 0,
+    correct_minority: 0,
+    incorrect_majority: 0,
+    incorrect_minority: 0
+  };
+
+  const attributeColumns = [
+    'asin_image_not_load', 'wrong_age_group', 'wrong_category', 'color', 'pattern', 'material', 'size',
+    'shape', 'support_type', 'extra_features', 'location', 'no_difference', 'has_product_difference',
+    'is_wrong_characteristic', 'is_wrong_size_or_count', 'is_wrong_bundle', 'is_wrong_packaging_overlay',
+    'irrelevant', 'exact_match', 'possible_substitute', 'cannot_judge'
+  ];
+
+  for (let i = 0; i < rows.length; i++) {
+    const cells = rows[i].getElementsByTagName('td');
+    if (!cells || cells.length === 0) continue;
+
+    const hitId = cells[indexes['hitid']]?.innerText.trim() || '';
+    const jugementHitId = cells[indexes['jugement hitid']]?.innerText.trim() || '';
+
+    if (!hitId) continue;
+
+    hitSet.add(hitId);
+    if (jugementHitId === 'hitid_ko') {
+      hitKOSet.add(hitId);
+    }
+
+    attributeColumns.forEach(attr => {
+      const attrIndex = Array.from(header).findIndex(th => th.innerText.trim().toLowerCase() === attr.toLowerCase());
+      if (attrIndex !== -1 && cells[attrIndex]) {
+        const attrValue = cells[attrIndex].innerText.trim();
+        if (attrValue === 'c_maj') {
+          attributeCounts.correct_majority++;
+        } else if (attrValue === 'c_min') {
+          attributeCounts.correct_minority++;
+        } else if (attrValue === 'i_maj' || attrValue === 'missing_maj') {
+          attributeCounts.incorrect_majority++;
+        } else if (attrValue === 'i_min' || attrValue === 'missing_min') {
+          attributeCounts.incorrect_minority++;
+        }
+      }
+    });
+  }
+
+  const totalAttributes = attributeCounts.correct_majority + attributeCounts.correct_minority + attributeCounts.incorrect_majority + attributeCounts.incorrect_minority;
+
+  const formatPercentage = (value) => {
+    return isNaN(value) || totalAttributes === 0 ? '0%' : value.toFixed(2) + '%';
+  };
+
+  const correctMajorityPercentage = formatPercentage((attributeCounts.correct_majority / totalAttributes) * 100);
+  const correctMinorityPercentage = formatPercentage((attributeCounts.correct_minority / totalAttributes) * 100);
+  const incorrectMajorityPercentage = formatPercentage((attributeCounts.incorrect_majority / totalAttributes) * 100);
+  const incorrectMinorityPercentage = formatPercentage((attributeCounts.incorrect_minority / totalAttributes) * 100);
+
+  // Affichage simple dans #scoreSummary
+	const scoreSummaryDiv = document.getElementById('scoreSummary');
+	if (scoreSummaryDiv) {
+	  scoreSummaryDiv.style.border = '2px solid black';     // contour significatif
+	  scoreSummaryDiv.style.padding = '8px';
+	  scoreSummaryDiv.style.borderRadius = '6px';
+	  scoreSummaryDiv.style.backgroundColor = '#f9f9f9';
+
+	  // Création du texte avec span colorisé pour C_Maj
+	  scoreSummaryDiv.innerHTML =
+		//`<span style="color: ${getCMajColor(correctMajorityPercentage)};">` +
+		//`C_Maj: ${correctMajorityPercentage} (${attributeCounts.correct_majority})</span>   ` +
+		//`C_Min: ${correctMinorityPercentage} (${attributeCounts.correct_minorority})   ` +
+		//`I_Maj: ${incorrectMajorityPercentage} (${attributeCounts.incorrect_majority})   ` +
+		//`I_Min: ${incorrectMinorityPercentage} (${attributeCounts.incorrect_minority})`;
+		
+		`<span style="color: ${getCMajColor(correctMajorityPercentage)};">` +
+		  `Correct Majority: ${correctMajorityPercentage}</span>&nbsp;&nbsp;&nbsp;&nbsp;` +
+		  `Correct Minority: ${correctMinorityPercentage}&nbsp;&nbsp;&nbsp;&nbsp;` +
+		  `Incorrect Majority: ${incorrectMajorityPercentage}&nbsp;&nbsp;&nbsp;&nbsp;` +
+		  `Incorrecte Minority: ${incorrectMinorityPercentage}`;
+	}
+}
+
+// Fonction pour choisir la couleur selon la valeur en pourcentage (string "xx.xx%")
+function getCMajColor(percentageStr) {
+  const val = parseFloat(percentageStr);
+  if (val > 95) return '#006400';        // vert foncé
+  else if (val >= 85 && val <= 94.99) return '#228B22'; // vert moins foncé
+  else if (val < 50) return '#8B0000';   // rouge foncé
+  else if (val < 85) return '#FF0000';   // rouge normal
+  return 'black'; // défaut
+}
+
+
+document.getElementById('hitContainer').addEventListener('change', (event) => {
+  if (event.target.type === 'checkbox') {
+    const doneButton = document.getElementById('done');
+    if (doneButton) {
+      //doneButton.click();
+    } else {
+      //console.warn('Bouton "done" introuvable');
+    }
+  }
+});
+
+
+
+
+
+
+
+
+
   </script>
 </html>
