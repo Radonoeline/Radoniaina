@@ -720,10 +720,14 @@ document.getElementById('btnShowHIT').addEventListener('click', () => {
 
 
 function showHIT(hitId) {
+  //console.log("HITId reçu:", hitId);
   const hitContainer = document.getElementById('hitContainer');
-hitContainer.innerHTML = '';
+  hitContainer.innerHTML = '';
+  // Vide le tableau global de titres
+  allTitles.length = 0; // si allTitles est const tableau, ou allTitles = [] si let
 
 const rows = tsvDataRaw.filter(r => r.HITId === hitId);
+//console.log("Nombre de lignes trouvées:", rows.length);
 if (!rows.length) return;
 
 currentHitRow = rows[0];
@@ -833,6 +837,7 @@ asinList.forEach(asin => {
     asinLink.href = `https://${domain}/dp/${asin}`;
     asinLink.target = "_blank";
 	asinText.textContent = asin;
+	asinText.style.display = "none";  // cache le texte ici
 	asinLink.textContent = asin;
 	asinLink.style.color = "#0066cc";
     asinLink.style.fontSize = "15px";
@@ -1048,7 +1053,7 @@ if (ATTRIBUTES.includes("relevance_label")) {
 
     asinBlock.appendChild(col);
   }
-  recolorTitles(hitContainer);
+  //recolorTitles(hitContainer);
   hitContainer.appendChild(asinBlock);
 });
 
@@ -1138,13 +1143,13 @@ if (hasTextURL) {
     });
 }
 }
-
+recolorTitles(hitContainer);
 }
 
 
 
 
-
+//ETO ZANY NO AMPIDIRINA LE COLORISATION VAOVAO
 //TAPITRA HATREO NY SHOW HIT id
     function findImage(row, asin) {
       try {
@@ -1179,6 +1184,7 @@ if (hasTextURL) {
 
   return grouped;
 }
+
 let loadedImage = null;
 let currentAngle = 0;
 let targetAngle = 0;
@@ -1195,7 +1201,7 @@ function showASINImage(src) {
     currentAngle = 0;
     targetAngle = 0;
     currentScale = 1;
-    resizeCanvas(canvas, img.width, img.height);
+    resizeCanvasForRotation(canvas, img, currentAngle, currentScale);
     drawImage(ctx, loadedImage, currentAngle, currentScale);
   };
 
@@ -1208,35 +1214,31 @@ function showASINImage(src) {
 canvas.onwheel = (e) => {
   e.preventDefault();
 
-  const zoomIntensity = 0.05;  // réduit la vitesse de zoom
+  const zoomIntensity = 0.05;
 
-  // Position et taille avant zoom
+  // Position centre avant zoom
   const rect = canvas.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
 
-  // Modification du scale
+  // Mise à jour du scale
   if (e.deltaY < 0) {
     currentScale += zoomIntensity;
   } else {
     currentScale = Math.max(0.1, currentScale - zoomIntensity);
   }
 
-  // Nouvelle taille
-  const newWidth = loadedImage.width * currentScale;
-  const newHeight = loadedImage.height * currentScale;
+  // Redimensionne le canvas en tenant compte de la rotation et du scale
+  const newSize = resizeCanvasForRotation(canvas, loadedImage, currentAngle, currentScale);
 
-  // Redimensionne le canvas
-  resizeCanvas(canvas, newWidth, newHeight);
+  // Positionne le canvas pour garder le centre fixe à l'écran
+  canvas.style.position = 'fixed';
+  canvas.style.left = (centerX - newSize.width / 2) + 'px';
+  canvas.style.top = (centerY - newSize.height / 2) + 'px';
 
-  // Positionne le canvas pour garder le centre fixe
-  canvas.style.position = 'fixed'; // important pour pouvoir ajuster left/top
-  canvas.style.left = (centerX - newWidth / 2) + 'px';
-  canvas.style.top = (centerY - newHeight / 2) + 'px';
-
-  // Redessine l’image après mise à jour visuelle
+  // Redessine l’image
   requestAnimationFrame(() => {
-    drawImage(ctx, loadedImage, currentAngle, currentScale);
+    drawImage(canvas.getContext("2d"), loadedImage, currentAngle, currentScale);
   });
 };
 
@@ -1249,12 +1251,23 @@ canvas.onwheel = (e) => {
   };
 }
 
-function resizeCanvas(canvas, width, height) {
-  canvas.width = width;
-  canvas.height = height;
+function resizeCanvasForRotation(canvas, img, angle, scale) {
+  const rad = angle * Math.PI / 180;
+  const absCos = Math.abs(Math.cos(rad));
+  const absSin = Math.abs(Math.sin(rad));
+
+  const boundingWidth = (img.width * absCos + img.height * absSin) * scale;
+  const boundingHeight = (img.width * absSin + img.height * absCos) * scale;
+
+  canvas.width = boundingWidth;
+  canvas.height = boundingHeight;
+
+  return { width: boundingWidth, height: boundingHeight };
 }
 
 function drawImage(ctx, img, angle, scale) {
+  resizeCanvasForRotation(ctx.canvas, img, angle, scale);
+  
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   ctx.save();
   ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
@@ -1956,6 +1969,16 @@ document.addEventListener('keydown', function (event) {
   }
 });
 
+
+// Liste des mots à exclure (en minuscules)
+const excludedWords = new Set([
+  "for", "pour", "with", "size", "taille", "color",
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
+  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
+  "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
+  "u", "v", "w", "x", "y", "z", "The", "the", "pour", 
+]);
+
 //FONCTION RECOLORIAGE TITRE
 function recolorTitles(container) {
   if (!container) {
@@ -1964,29 +1987,61 @@ function recolorTitles(container) {
   }
   if (allTitles.length === 0) return;
 
-  const tokenizedTitles = allTitles.map(title =>
-    title.toLowerCase().match(/\b[\w\d\.]+\b/g) || []
-  );
+  // Tokenize titles, extract unique words per title (en minuscule)
+  const tokenizedTitles = allTitles.map(title => {
+    const words = title.toLowerCase().match(/\b[\w\d\.]+\b/g) || [];
+    // Exclure les mots dans excludedWords
+    const filtered = words.filter(w => !excludedWords.has(w));
+    return Array.from(new Set(filtered)); // unique words per title
+  });
 
-  function intersection(arrays) {
-    return arrays.reduce((a, b) => a.filter(c => b.includes(c)));
-  }
+  // Compter fréquence d'apparition des mots dans les titres
+  const wordCounts = {};
+  tokenizedTitles.forEach(words => {
+    words.forEach(word => {
+      wordCounts[word] = (wordCounts[word] || 0) + 1;
+    });
+  });
 
-  const commonWords = intersection(tokenizedTitles);
-  if (commonWords.length === 0) return;
+  // Au moins la moitié des titres
+  const minFreq = Math.ceil(allTitles.length / 2);
+
+  // Liste des mots majoritaires (apparus dans au moins minFreq titres), triés par fréquence décroissante
+  const majorWordsWithCount = Object.entries(wordCounts)
+    .filter(([word, count]) => count >= minFreq)
+    .sort((a, b) => b[1] - a[1]);
+
+  if (majorWordsWithCount.length === 0) return;
+
+  // Affichage dans la console
+  //console.log("Mot Maj :");
+  majorWordsWithCount.forEach(([word, count]) => {
+    //console.log(`${word} : ${count}`);
+  });
+
+  const majorWords = majorWordsWithCount.map(([word]) => word);
 
   // Sélectionne tous les div titres dans le container
   const titleDivs = container.querySelectorAll('.asin-info > div');
   titleDivs.forEach((div, i) => {
-    div.innerHTML = highlightCommonWords(allTitles[i], commonWords);
+    div.innerHTML = highlightCommonWords(allTitles[i], majorWords);
   });
 }
 
 function highlightCommonWords(title, commonWords) {
   if (commonWords.length === 0) return title;
-  const regex = new RegExp(`\\b(${commonWords.join('|')})\\b`, 'gi');
-  return title.replace(regex, match => `<span style="background: #FFEB3B; border-bottom: 2px solid #FBC02D;">${match}</span>`);
+
+  // Échapper les mots pour regex au besoin (simplifié ici)
+  const escapedWords = commonWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+  const regex = new RegExp(`\\b(${escapedWords.join('|')})\\b`, 'gi');
+  return title.replace(regex, match => 
+  `<span style="background: #D4EDDA; border-bottom: 2px solid #28A745; color: #155724;">${match}</span>`
+  );
+
 }
+
+
 
 
 //ENREGISTREMENT TSOTRA
@@ -2007,32 +2062,26 @@ document.getElementById('done').addEventListener('click', async () => {
 
   asinBlocks.forEach(asinBlock => {
     const asinKey = asinBlock.querySelector('.asin-info span')?.textContent.trim().replace("ASIN:", "").trim() || '[ASIN inconnu]';
-	//const asinKey = asinBlock.getAttribute('data-asin') || '[ASIN inconnu]';
-	if (!asinKey || asinKey === '[ASIN inconnu]') {
-  console.warn("⚠️ ASIN manquant dans le bloc :", asinBlock);
-}
-	
+    if (!asinKey || asinKey === '[ASIN inconnu]') {
+      console.warn("⚠️ ASIN manquant dans le bloc :", asinBlock);
+    }
 
     // ✅ Récupérer les valeurs cochées (checkboxes) et relevance_label
-	const jugeColumn = asinBlock.querySelector('.worker-column.judge');
-	let jugeCheckedValues = [];
+    const jugeColumn = asinBlock.querySelector('.worker-column.judge');
+    let jugeCheckedValues = [];
 
-	if (jugeColumn) {
-	  const jugeCheckboxes = jugeColumn.querySelectorAll('input.juge-checkbox:checked');
-	  jugeCheckedValues = Array.from(jugeCheckboxes).map(cb => cb.value);
+    if (jugeColumn) {
+      const jugeCheckboxes = jugeColumn.querySelectorAll('input.juge-checkbox:checked');
+      jugeCheckedValues = Array.from(jugeCheckboxes).map(cb => cb.value);
 
-	  // 🛠 Sélecteur dynamique pour relevance_label
-	  const relevanceSelect = jugeColumn.querySelector(`select[name="${asinKey}_relevance_label"]`);
-	  if (relevanceSelect && relevanceSelect.value && relevanceSelect.value !== 'none') {
-		jugeCheckedValues.push(relevanceSelect.value);
-	  }
-	} else {
-	  console.warn(`⚠️ Colonne .worker-column.judge introuvable pour ASIN ${asinKey}`);
-	}
-
-	// ✅ Debug
-	//console.log(`🔍 ASIN: ${asinKey}`);
-	//console.log(`📌 Jugement du juge:`, jugeCheckedValues);
+      // 🛠 Sélecteur dynamique pour relevance_label
+      const relevanceSelect = jugeColumn.querySelector(`select[name="${asinKey}_relevance_label"]`);
+      if (relevanceSelect && relevanceSelect.value && relevanceSelect.value !== 'none') {
+        jugeCheckedValues.push(relevanceSelect.value);
+      }
+    } else {
+      console.warn(`⚠️ Colonne .worker-column.judge introuvable pour ASIN ${asinKey}`);
+    }
 
     if (jugeCheckedValues.length === 0) {
       erreurs.push(`${asinKey} (aucun verdict coché)`);
@@ -2099,24 +2148,16 @@ document.getElementById('done').addEventListener('click', async () => {
       const marketplace = currentHitRow['Input.marketplace'] || '';
 
       let amazonImage = '';
-try {
-  const matchArray = JSON.parse(inputMatches);
-  const asinMatch = matchArray.find(m => m.asin === asinKey);
+      try {
+        const matchArray = JSON.parse(inputMatches);
+        const asinMatch = matchArray.find(m => m.asin === asinKey);
 
-  // 🔍 Ajout des logs pour débogage
-  //console.log('🔍 asinMatch =', asinMatch);
-  if (asinMatch) {
-    //console.log('📸 asinMatch.image_url =', asinMatch.image_url);
-  } else {
-    //console.log('❌ Aucun asinMatch trouvé pour asinKey =', asinKey);
-  }
-
-  if (asinMatch && asinMatch.image_url) {
-    amazonImage = asinMatch.image_url;
-  }
-} catch (e) {
-  console.warn(`❌ Erreur parsing matches pour ASIN ${asinKey}`, e);
-}
+        if (asinMatch && asinMatch.image_url) {
+          amazonImage = asinMatch.image_url;
+        }
+      } catch (e) {
+        console.warn(`❌ Erreur parsing matches pour ASIN ${asinKey}`, e);
+      }
 
       const row = document.createElement('tr');
       [
@@ -2145,28 +2186,30 @@ try {
   }
 
   tableau.style.display = 'none';
-  // Sélectionner uniquement le tbody du tableau (les lignes de données sans l'en-tête)
-//const tbody = tableau.querySelector('tbody');
-const range = document.createRange();
-range.selectNodeContents(tbody); // on sélectionne uniquement le contenu de tbody
 
-// Vider les sélections précédentes puis sélectionner ce range
-const selection = window.getSelection();
-selection.removeAllRanges();
-selection.addRange(range);
+  // Construire le texte TSV uniquement avec les lignes du tbody (sans les en-têtes)
+  const rows = tbody.querySelectorAll('tr');
+  const tsvLines = [];
 
-// Copier dans le presse-papiers
-  const successful = document.execCommand('copy');
-  if (successful) {
-  showNotification('✅ Jugement terminé, résultats copiés dans le presse-papiers.');
-  scrollPageToTop(); // ici on scrolle vers le haut
-} else {
-  alert('❌ Échec de la copie automatique. Veuillez copier manuellement.');
-}
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const values = Array.from(cells).map(td => 
+      td.textContent.replace(/\t/g, ' ').replace(/\n/g, ' ').trim()
+    );
+    tsvLines.push(values.join('\t'));
+  });
 
-// Nettoyer la sélection (optionnel)
-selection.removeAllRanges();
+  const tsvText = tsvLines.join('\n');
+
+  try {
+    await navigator.clipboard.writeText(tsvText);
+    showNotification('✅ Jugement terminé, résultats copiés dans le presse-papiers.');
+    scrollPageToTop();
+  } catch (err) {
+    alert('❌ Échec de la copie automatique. Veuillez copier manuellement.\n' + err);
+  }
 });
+
 
 
 //SIMULATION BOUTON TERMINE SIMPLE (DU BAS)
