@@ -5,6 +5,21 @@
   <title>Visualisation HIT</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
   <style>
+  /* style pour les asin-block sans mot majoritaire */
+.asin-block.no-major {
+  background-color: #feb9b9 !important; /* rouge clair */
+  color: black !important;
+}
+.asin-block.major {
+background-color:#b8f0b9 !important; /* vert très clair */
+color: black !important;
+}
+/* style pour mots majoritaires surlignés */
+.highlight-major {
+  background: #f9ef03;
+  border-bottom: 2px solid #28A745;
+  color: #155724;
+}
   .hidden {
   display: none !important;
 }
@@ -1994,29 +2009,35 @@ document.addEventListener('keydown', function (event) {
 // Liste des mots à exclure (en minuscules)
 const excludedWords = new Set([
   "for", "pour", "with", "size", "taille", "color",
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
-  "a", "b", "c", "d", "e", "f", "g", "h", "i", "j",
-  "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
-  "u", "v", "w", "x", "y", "z", "The", "the", "pour", 
+  "1","2","3","4","5","6","7","8","9","0",
+  "a","b","c","d","e","f","g","h","i","j",
+  "k","l","m","n","o","p","q","r","s","t",
+  "u","v","w","x","y","z","the","pour"
 ]);
 
-//FONCTION RECOLORIAGE TITRE
-function recolorTitles(container) {
-  if (!container) {
-    console.warn('container is undefined in recolorTitles');
-    return;
-  }
-  if (allTitles.length === 0) return;
+function escapeRegex(s){
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-  // Tokenize titles, extract unique words per title (en minuscule)
+function recolorTitles(container) {
+  if (!container) return;
+
+  // Récupère les div de titre (ordre important)
+  const titleDivs = container.querySelectorAll('.asin-info > div');
+  if (!titleDivs || titleDivs.length === 0) return;
+
+  // Construire allTitles depuis DOM (plus robuste que dépendre d'une variable globale)
+  const allTitles = Array.from(titleDivs).map(div => (div.textContent || '').trim());
+
+  // Tokenize titles (unicode-friendly) et filtrage
   const tokenizedTitles = allTitles.map(title => {
-    const words = title.toLowerCase().match(/\b[\w\d\.]+\b/g) || [];
-    // Exclure les mots dans excludedWords
+    // utilise des classes Unicode pour lettres/chiffres
+    const words = title.toLowerCase().match(/[\p{L}\p{N}\.]+/gu) || [];
     const filtered = words.filter(w => !excludedWords.has(w));
-    return Array.from(new Set(filtered)); // unique words per title
+    return Array.from(new Set(filtered));
   });
 
-  // Compter fréquence d'apparition des mots dans les titres
+  // Compte la fréquence des mots
   const wordCounts = {};
   tokenizedTitles.forEach(words => {
     words.forEach(word => {
@@ -2024,42 +2045,52 @@ function recolorTitles(container) {
     });
   });
 
-  // Au moins la moitié des titres
   const minFreq = Math.ceil(allTitles.length / 2);
 
-  // Liste des mots majoritaires (apparus dans au moins minFreq titres), triés par fréquence décroissante
   const majorWordsWithCount = Object.entries(wordCounts)
     .filter(([word, count]) => count >= minFreq)
-    .sort((a, b) => b[1] - a[1]);
+    .sort((a,b) => b[1] - a[1]);
 
-  if (majorWordsWithCount.length === 0) return;
+  // retire l'ancienne marque .no-major pour tous les blocks (nettoyage)
+  container.querySelectorAll('.asin-block.no-major').forEach(b => b.classList.remove('no-major'));
 
-  // Affichage dans la console
-  //console.log("Mot Maj :");
-  majorWordsWithCount.forEach(([word, count]) => {
-    //console.log(`${word} : ${count}`);
-  });
+  if (majorWordsWithCount.length === 0) {
+    // Aucun mot majoritaire : on peut décider de marquer tous les blocks
+    container.querySelectorAll('.asin-block').forEach(block => block.classList.add('no-major'));
+    // et on arrête
+    return;
+  }
 
-  const majorWords = majorWordsWithCount.map(([word]) => word);
+  const majorWords = majorWordsWithCount.map(([w]) => w);
 
-  // Sélectionne tous les div titres dans le container
-  const titleDivs = container.querySelectorAll('.asin-info > div');
+  // fonction interne pour surligner les mots majoritaires
+  function highlightCommonWords(title, commonWords) {
+    if (!commonWords || commonWords.length === 0) return title;
+    const escaped = commonWords.map(w => escapeRegex(w));
+    const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'giu');
+    return title.replace(regex, match => `<span class="highlight-major">${match}</span>`);
+  }
+
+  // Appliquer le surlignage et la coloration des asin-block sans majoritaire
   titleDivs.forEach((div, i) => {
-    div.innerHTML = highlightCommonWords(allTitles[i], majorWords);
+  const originalTitle = allTitles[i] || '';
+  div.innerHTML = highlightCommonWords(originalTitle, majorWords);
+
+  const hasMajor = majorWords.some(word => {
+    return new RegExp(`\\b${escapeRegex(word)}\\b`, 'iu').test(originalTitle);
   });
-}
 
-function highlightCommonWords(title, commonWords) {
-  if (commonWords.length === 0) return title;
-
-  // Échapper les mots pour regex au besoin (simplifié ici)
-  const escapedWords = commonWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-
-  const regex = new RegExp(`\\b(${escapedWords.join('|')})\\b`, 'gi');
-  return title.replace(regex, match => 
-  `<span style="background: #D4EDDA; border-bottom: 2px solid #28A745; color: #155724;">${match}</span>`
-  );
-
+  const asinBlock = div.closest('.asin-block');
+  if (asinBlock) {
+    if (!hasMajor) {
+      asinBlock.classList.add('no-major');
+      asinBlock.classList.remove('major');
+    } else {
+      asinBlock.classList.add('major');
+      asinBlock.classList.remove('no-major');
+    }
+  }
+});
 }
 
 
