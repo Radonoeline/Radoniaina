@@ -47,6 +47,13 @@ body {
   flex-wrap: wrap;
   gap: 10px 15px;
   align-items: center;
+  align-items: center;
+
+    /* 🔹 Ajouts */
+    width: 80%;       /* ou en px si tu veux fixe */
+    left: 50%;
+    transform: translateX(-50%); /* centrage horizontal */
+    border-radius: 8px; /* optionnel pour un style flottant */
 }
 
 #controls input[type="file"],
@@ -80,8 +87,9 @@ body {
   top: 120px;
   left: 0.5cm;
   width: 14cm;
-  min-height: 50px;
-  max-height: 400px;
+  min-height: 150px; /* 50px × 3 */
+  max-height: 1200px; /* 400px × 3 */
+  height: 865px;
   background: #f1f1f1;
   padding: 0; /* Supprime le padding ici */
   border: 3px solid #888;
@@ -91,7 +99,7 @@ body {
   z-index: 999;
   line-height: 1.4;
   resize: both;
-  overflow: auto;
+  overflow: hidden; /* empêche toute scrollbar */
   cursor: default;
   display: none;
 }
@@ -108,25 +116,33 @@ body {
   padding: 18px 13px; /* même padding que tu avais dans #informations */
   overflow-y: auto;
   max-height: 340px; /* max-height total - header */
+  word-wrap: break-word;      /* Permet de casser les mots trop longs */
+  overflow-wrap: break-word;  /* Support moderne */
+  white-space: normal;        /* Pour s'assurer que le texte peut revenir à la ligne */
+  max-width: 100%;            /* Ne dépasse jamais la largeur du parent */
+  box-sizing: border-box;     /* Inclut le padding dans la largeur */
 }
 
 
 
 
-/* Bloc ASIN */
 .asin-block {
-  display: flex;
-  top:20px;
-  align-items: flex-start;
-  border: 2px solid #999;
-  font-size: 15px;
-  border-left: 6px solid #888;
-  padding: 14px;
-  border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(50, 50, 50, 0.3);
-  gap: 15px;
-  width: 100vw;
-  box-sizing: border-box;
+    display: flex;
+    align-items: flex-start;
+    border: 2px solid #999;
+    font-size: 15px;
+    border-left: 6px solid #888;
+    padding: 14px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(50, 50, 50, 0.3);
+    gap: 15px;
+    width: fit-content;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    /* Centrage horizontal */
+    margin-left: auto;
+    margin-right: 0;
 }
 
 /* Infos produit */
@@ -242,8 +258,8 @@ label select {
   touch-action: none;         /* Important pour éviter les effets "glissants" */
   user-select: none;          /* Empêche la sélection de texte ou image */
   position: fixed !important;
-  top: 10px;
-  left: 10px;
+  top: 450px;
+  left: 40px;
   width: 400px;
   z-index: 9999;
   background-color: white;
@@ -528,7 +544,9 @@ element.style {
 
 </body>
 <div id="informations" style="display:none; position: fixed; ...">
-  <div id="dragHeader">Informations QUERY</div>
+  <div id="dragHeader" style="font-weight: bold; text-align: center;">
+  -----------Informations QUERY-----------
+</div>
   <div id="infoContent"></div>
 </div>
   <canvas id="floatingASINCanvas"></canvas>
@@ -1147,7 +1165,7 @@ if (hasASIN) {
 
   const query_title = row['Input.queryProductTitle'];
   if (query_title) {
-    html += `<div style="margin-left:10px; font-style:italic;">${query_title}</div>`;
+    html += `<div style=font-weight:bold;">${query_title}</div>`;
   }
 } else {
   html += `<b>ASIN QUERY :</b> Batch non-LMT<br>`;
