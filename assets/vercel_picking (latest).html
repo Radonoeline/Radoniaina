@@ -823,13 +823,20 @@ queryImg.onload = () => {
 };
 
 
-// ======== 🆕 Zoom via molette ========
+// ======== 🆕 Zoom via molette (fluide et constant) ========
 queryWrapper.addEventListener('wheel', (e) => {
   e.preventDefault();
-  const delta = Math.sign(e.deltaY);
+
+  // Normalisation du delta
+  let delta = e.deltaY;
+  if (e.deltaMode === 1) delta *= 16;
+  else if (e.deltaMode === 2) delta *= window.innerHeight;
+
+  const zoomSpeed = 0.0015; // plus petit = plus fluide
+  const scaleFactor = 1 - delta * zoomSpeed;
+
   let scale = parseFloat(queryWrapper.dataset.scale) || 1;
-  scale += delta * -0.1;
-  scale = Math.min(Math.max(0.5, scale), 3);
+  scale = Math.max(0.5, Math.min(3, scale * scaleFactor));
 
   const x = parseFloat(queryWrapper.dataset.x) || 0;
   const y = parseFloat(queryWrapper.dataset.y) || 0;
@@ -838,6 +845,7 @@ queryWrapper.addEventListener('wheel', (e) => {
   queryWrapper.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
   queryWrapper.dataset.scale = scale;
 });
+
 
 
 // ======== Préparation liste ASIN ========
@@ -1252,11 +1260,17 @@ function showASINImage(src) {
 
   makeDraggableAndZoomable(canvas, true);
 
-// Zoom avec molette
+// Zoom avec molette (fluide et constant)
 canvas.onwheel = (e) => {
   e.preventDefault();
 
-  const zoomIntensity = 0.05;
+  // Normalisation du delta pour un zoom homogène partout
+  let delta = e.deltaY;
+  if (e.deltaMode === 1) delta *= 16; // lignes → pixels
+  else if (e.deltaMode === 2) delta *= window.innerHeight; // pages → pixels
+
+  const zoomSpeed = 0.0015; // plus petit = plus fluide
+  const scaleFactor = 1 - delta * zoomSpeed;
 
   // Position centre avant zoom
   const rect = canvas.getBoundingClientRect();
@@ -1264,11 +1278,7 @@ canvas.onwheel = (e) => {
   const centerY = rect.top + rect.height / 2;
 
   // Mise à jour du scale
-  if (e.deltaY < 0) {
-    currentScale += zoomIntensity;
-  } else {
-    currentScale = Math.max(0.1, currentScale - zoomIntensity);
-  }
+  currentScale = Math.max(0.1, Math.min(5, currentScale * scaleFactor));
 
   // Redimensionne le canvas en tenant compte de la rotation et du scale
   const newSize = resizeCanvasForRotation(canvas, loadedImage, currentAngle, currentScale);
@@ -1283,6 +1293,7 @@ canvas.onwheel = (e) => {
     drawImage(canvas.getContext("2d"), loadedImage, currentAngle, currentScale);
   });
 };
+
 
 
 
