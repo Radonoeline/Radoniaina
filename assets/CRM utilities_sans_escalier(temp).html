@@ -1113,7 +1113,7 @@ function calculateConsensusWorker() {
         const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
         weekNum = Math.ceil(dayDiff / 7);
 
-        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
         monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
         yearStr = selectedDate.getFullYear().toString();
@@ -1231,7 +1231,7 @@ function calculateAccuracyWorkerID() {
         const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
         weekNum = Math.ceil(dayDiff / 7);
 
-        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
         monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
         yearStr = selectedDate.getFullYear().toString();
@@ -1598,7 +1598,7 @@ function DetailedAttributConsensus() {
         const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
         weekNum = Math.ceil(dayDiff / 7);
 
-        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
         monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
         yearStr = selectedDate.getFullYear().toString();
@@ -1911,7 +1911,7 @@ function generateTable() {
         const janFirst = new Date(selectedDate.getFullYear(), 0, 1);
         const dayDiff = (selectedDate - janFirst + ((janFirst.getDay() + 6) % 7) * 86400000) / 86400000;
         weekNum = Math.ceil(dayDiff / 7);
-        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
         monthStr = months[selectedDate.getMonth()] + '-' + selectedDate.getFullYear();
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
     }
@@ -2089,7 +2089,7 @@ function extraire_brut() {
         formattedDate = selectedDate.toLocaleDateString('fr-FR');
         yearStr = selectedDate.getFullYear();
 
-        const months = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+        const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
         const monthName = months[selectedDate.getMonth()];
         monthStr = `${monthName}-${yearStr}`;
     }
@@ -2892,4 +2892,5 @@ function generateescalier2() {
 
 </script>
 </html>
+
 
