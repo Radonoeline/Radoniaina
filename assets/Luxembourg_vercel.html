@@ -200,7 +200,7 @@ input[type="radio"] {
 <!-- Ligne regroupant fichier + options + actions -->
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px;">
     <div style="display: flex; align-items: center; gap: 8px;">
-        <input type="file" id="fileInput" accept=".tsv,.txt">
+        <input type="file" id="fileInput" accept=".tsv,.txt,.xlsx">
         <label style="display: flex; align-items: center; gap: 4px;">
             <input type="checkbox" id="includeHeaders" checked>
             Avec en-têtes
@@ -261,7 +261,8 @@ input[type="radio"] {
     <span id="consensusStats" style="font-weight: bold; font-size: 1.2em;"></span>
 </div>
 
-
+<!-- SheetJS pour XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="papaparse_rado.js"></script>
 <script>
 document.getElementById('fileInput').addEventListener('change', function(e) {
@@ -269,86 +270,107 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     if (!file) return;
 
     const fileName = file.name;
+    const ext = fileName.split('.').pop().toLowerCase();
 
-    Papa.parse(file, {
-        delimiter: "\t",
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-            let data = results.data;
-
-            // ✅ Colonnes nécessaires
-            const requiredCols = [
-                "query",
-                "candidates_1", "candidates_2", "candidates_3",
-                "Single PT_assignment_1", "Best PT?_assignment_1", "PT span_assignment_1",
-                "Single PT_assignment_2", "Best PT?_assignment_2", "PT span_assignment_2",
-                "Single PT_assignment_3", "Best PT?_assignment_3", "PT span_assignment_3",
-                "_assignment_1", "_assignment_2", "_assignment_3",
-                "line_position", "ASSIGNMENT_POSITION", "MATRICULE", "START", "STOP", "DMT"
-            ];
-
-            // Vérification des colonnes
-            const headers = Object.keys(data[0]).map(h => h.replace(/^\uFEFF/, "").trim());
-            const missing = requiredCols.filter(col => !headers.includes(col));
-
-            if(missing.length > 0){
-                alert("Colonne(s) manquante(s) : " + missing.join(", "));
-                return; // abandonner le chargement
+    if(ext === "tsv" || ext === "csv") {
+        // ✅ Utiliser PapaParse pour CSV/TSV
+        Papa.parse(file, {
+            delimiter: ext === "tsv" ? "\t" : ",",
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                handleParsedData(results.data, fileName);
             }
-
-            // Tout est OK → enregistrer le nom du fichier et notifier
-            localStorage.setItem("lastLuxembourgFileName", fileName);
-            alert("Fichier chargé avec succès : " + fileName);
-            // Stocker globalement pour que le bouton Parse puisse l'utiliser
-            window.loadedFileData = data;
-            // 1️⃣ Regrouper par line_position
-            let grouped = {};
-            data.forEach(row => {
-                let pos = row.line_position;
-                if (!grouped[pos]) grouped[pos] = [];
-                grouped[pos].push(row);
-            });
-
-            // 2️⃣ Garder uniquement ceux avec >= 3 lignes
-            let filtered = [];
-            for (let pos in grouped) {
-                if (grouped[pos].length >= 3) {
-                    filtered.push(...grouped[pos]);
-                }
-            }
-
-            // 3️⃣ Trier par ordre croissant de line_position
-            filtered.sort((a, b) => Number(a.line_position) - Number(b.line_position));
-
-            // 4️⃣ Convertir START et STOP
-            filtered.forEach(row => {
-                row.START = excelDateToJS(row.START);
-                row.STOP = excelDateToJS(row.STOP);
-            });
-
-            // 5️⃣ Afficher datasource
-            //displayTable(filtered);
-
-            // 6️⃣ Construire et afficher resultTable
-            //buildResultTable(filtered);
-			//loadSavedJugeValues();
-			//summary();
-        }
-    });
+        });
+    } else if(ext === "xlsx") {
+        // ✅ Utiliser SheetJS pour XLSX
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            const data = new Uint8Array(ev.target.result);
+            const workbook = XLSX.read(data, {type: "array"});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, {defval:""});
+            handleParsedData(jsonData, fileName);
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        alert("Format de fichier non supporté : " + ext);
+    }
 });
+
+function handleParsedData(data, fileName) {
+    // Colonnes nécessaires
+    const requiredCols = [
+        "query",
+        "candidates_1", "candidates_2", "candidates_3",
+        "Single PT_assignment_1", "Best PT?_assignment_1", "PT span_assignment_1",
+        "Single PT_assignment_2", "Best PT?_assignment_2", "PT span_assignment_2",
+        "Single PT_assignment_3", "Best PT?_assignment_3", "PT span_assignment_3",
+        "_assignment_1", "_assignment_2", "_assignment_3",
+        "line_position", "ASSIGNMENT_POSITION", "MATRICULE", "START", "STOP", "DMT"
+    ];
+
+    const headers = Object.keys(data[0]).map(h => h.replace(/^\uFEFF/, "").trim());
+    const missing = requiredCols.filter(col => !headers.includes(col));
+
+    if(missing.length > 0){
+        alert("Colonne(s) manquante(s) : " + missing.join(", "));
+        return;
+    }
+
+    // Tout est OK → enregistrer le nom du fichier
+    localStorage.setItem("lastLuxembourgFileName", fileName);
+    alert("Fichier chargé avec succès : " + fileName);
+    window.loadedFileData = data;
+
+    // Traitement comme avant
+    let grouped = {};
+    data.forEach(row => {
+        let pos = row.line_position;
+        if (!grouped[pos]) grouped[pos] = [];
+        grouped[pos].push(row);
+    });
+
+    let filtered = [];
+    for (let pos in grouped) {
+        if (grouped[pos].length >= 3) {
+            filtered.push(...grouped[pos]);
+        }
+    }
+
+    filtered.sort((a, b) => Number(a.line_position) - Number(b.line_position));
+
+    filtered.forEach(row => {
+        row.START = excelDateToJS(row.START);
+        row.STOP = excelDateToJS(row.STOP);
+    });
+
+      displayTable(filtered);
+    //buildResultTable(filtered);
+    //loadSavedJugeValues();
+    //summary();
+}
 
 
 // Convertir un nombre Excel style "45880,36726" en Date/Heure
 function excelDateToJS(excelVal) {
-    if (!excelVal) return "";
-    let num = parseFloat(excelVal.replace(",", "."));
+    if (excelVal == null || excelVal === "") return "";
+    
+    // Convertir en string pour utiliser replace
+    let numStr = excelVal.toString().replace(",", ".");
+    let num = parseFloat(numStr);
+    
+    if (isNaN(num)) return "";
+
+    // Conversion Excel → JS Date
     let utc_days = Math.floor(num - 25569);
     let utc_value = utc_days * 86400;
     let fractional_day = num - Math.floor(num) + 0.0000001;
     let totalSeconds = Math.floor(utc_value + fractional_day * 86400);
+    
     return new Date(totalSeconds * 1000).toLocaleDateString(); // seulement date
 }
+
 
 function displayTable(data) {
     const table = document.getElementById("datasource");
@@ -391,7 +413,8 @@ function buildResultTable(data) {
 		"Commentaires_CQ",
         "Stat_Single PT_assignment","Stat_Best PT?_assignment",
         "Status assignement",
-        "Accord_Single PT_assignment","Accord_Best PT?_assignment"
+        "Accord_Single PT_assignment","Accord_Best PT?_assignment",
+		"Status HitID"
     ];
     thead.innerHTML = "<tr>" + headers.map(h => `<th>${h}</th>`).join("") + "</tr>";
 
@@ -429,7 +452,8 @@ function buildResultTable(data) {
                 "query": getVal(row, "query"),
                 "TRAITANT": row.MATRICULE,
                 "STOP": row.STOP,
-                "DMT": row.DMT,
+                //"DMT": row.DMT,
+				"DMT": typeof row.DMT === "number" ? excelTimeToHHMMSS(row.DMT) : row.DMT,
                 "Single PT_assignment": row[`Single PT_assignment_${num}`] || "",
                 "Best PT?_assignment": row[`Best PT?_assignment_${num}`] || "",
                 "PT span_assignment": row[`PT span_assignment_${num}`] || "",
@@ -450,7 +474,8 @@ function buildResultTable(data) {
                 "Status assignement":"",
 				
                 "Accord_Single PT_assignment": "",
-                "Accord_Best PT?_assignment": ""
+                "Accord_Best PT?_assignment": "",
+				"Status HitID":""
             };
         });
 
@@ -540,10 +565,10 @@ setTimeout(() => {
                 const idxStatSingle = headers.indexOf('Stat_Single PT_assignment');
                 const idxStatBest = headers.indexOf('Stat_Best PT?_assignment');
 
-                console.log(`Première liste déroulante changée : ${this.value} (id=${id})
-Commentaires_CQ = ${cells[idxComment]?.querySelector('input')?.value || ""}
-Stat_Single PT_assignment = ${cells[idxStatSingle]?.innerText.trim() || ""}
-Stat_Best PT?_assignment = ${cells[idxStatBest]?.innerText.trim() || ""}`);
+                //console.log(`Première liste déroulante changée : ${this.value} (id=${id})
+				//Commentaires_CQ = ${cells[idxComment]?.querySelector('input')?.value || ""}
+				//Stat_Single PT_assignment = ${cells[idxStatSingle]?.innerText.trim() || ""}
+				//Stat_Best PT?_assignment = ${cells[idxStatBest]?.innerText.trim() || ""}`);
             }
 
             juge_moi();
@@ -660,7 +685,7 @@ function loadSavedJugeValues() {
             commentInput.style.color = 'black';
         }
     });
-
+	
     juge_moi();
 }
 
@@ -758,6 +783,7 @@ function juge_moi() {
     const idxStatSingle = headers.indexOf('Stat_Single PT_assignment');
     const idxStatBest = headers.indexOf('Stat_Best PT?_assignment');
     const idxStatus = headers.indexOf('Status assignement');
+	const idxStatusHitID = headers.indexOf('Status HitID');
     const idxAccordSingle = headers.indexOf('Accord_Single PT_assignment');
     const idxAccordBest = headers.indexOf('Accord_Best PT?_assignment');
 
@@ -848,7 +874,19 @@ function juge_moi() {
                 setCellValue(c[idxStatus], "KO");
             }
         });
-
+		
+		// -----------------------------
+		// Status HitID
+		const statStatusValues = rowCells.map(c => getCellValue(c[idxStatus]));
+		if (statStatusValues.every(v => v === "")) {
+			// Si toutes les lignes du groupe sont vides => groupe pas encore jugé
+			rowCells.forEach(c => setCellValue(c[idxStatusHitID], ""));
+		} else {
+			const okCount = statStatusValues.filter(v => v === "OK").length;
+			const hitIDStatus = okCount > 1 ? "OK" : "KO"; // si >1 (donc 2 ou 3 OK) => OK, sinon KO
+			rowCells.forEach(c => setCellValue(c[idxStatusHitID], hitIDStatus));
+		}
+		
         // -----------------------------
         // Accord_Single PT_assignment
         const statSingleValues = rowCells.map(c => getCellValue(c[idxStatSingle]));
@@ -891,48 +929,83 @@ function summary() {
     const resultTable = document.getElementById('resultTable');
     if (!sourceTable || !resultTable) return;
 
-    // --- Récupération des indices dans datasource
-    const sourceHeaders = Array.from(sourceTable.querySelectorAll('thead th')).map(th => th.innerText.trim().toLowerCase());
+    // --- Récupération des indices dans datasource ---
+    const sourceHeaders = Array.from(sourceTable.querySelectorAll('thead th')).map(th => 
+        th.textContent.replace(/\s+/g,' ').trim().toLowerCase()
+    );
     const matriculeIndexSrc = sourceHeaders.indexOf('matricule');
     const dmtIndexSrc = sourceHeaders.indexOf('dmt');
-    if (matriculeIndexSrc === -1 || dmtIndexSrc === -1) return;
+    if (matriculeIndexSrc === -1 || dmtIndexSrc === -1) {
+        console.warn("Colonnes 'MATRICULE' ou 'DMT' non trouvées dans datasource");
+        return;
+    }
 
+    // --- Récupération des données source ---
     const sourceRows = Array.from(sourceTable.querySelectorAll('tbody tr'));
     const sourceData = sourceRows.map(row => {
         const cells = row.querySelectorAll('td');
         return {
             MATRICULE: cells[matriculeIndexSrc]?.innerText.trim(),
-            DMT: cells[dmtIndexSrc]?.innerText.trim()
+            DMT: cells[dmtIndexSrc]?.innerText.trim() || cells[dmtIndexSrc]?.innerText // fallback
         };
     });
 
-    // --- Liste unique des matricules et calcul des totaux
+    // --- Fonction pour convertir un temps Excel (fraction de jour) en HH:MM:SS ---
+    function excelTimeToHHMMSS(val) {
+        if (!val) return "00:00:00";
+
+        // Si c'est déjà une string HH:MM:SS, on retourne tel quel
+        if (typeof val === "string" && val.includes(":")) return val;
+
+        // Conversion numérique (fraction de jour)
+        const num = parseFloat(val);
+        if (isNaN(num)) return "00:00:00";
+
+        const totalSeconds = Math.round(num * 86400);
+        const hours = String(Math.floor(totalSeconds / 3600)).padStart(2,"0");
+        const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2,"0");
+        const seconds = String(totalSeconds % 60).padStart(2,"0");
+        return `${hours}:${minutes}:${seconds}`;
+    }
+
+    // --- Calcul des totaux par matricule ---
     const matriculeSummary = {};
     sourceData.forEach(r => {
         if (!r.MATRICULE) return;
-        const parts = r.DMT.split(':').map(Number);
-        const seconds = parts[0]*3600 + parts[1]*60 + parts[2];
+
+        // Convertir DMT en HH:MM:SS
+        const tttStr = excelTimeToHHMMSS(r.DMT);
+
+        // Calculer le total en secondes
+        const parts = tttStr.split(":").map(Number);
+        const totalSec = parts[0]*3600 + parts[1]*60 + parts[2];
+
         if (!matriculeSummary[r.MATRICULE]) matriculeSummary[r.MATRICULE] = { totalSec: 0, volume: 0 };
-        matriculeSummary[r.MATRICULE].totalSec += seconds;
+        matriculeSummary[r.MATRICULE].totalSec += totalSec;
         matriculeSummary[r.MATRICULE].volume += 1;
     });
 
     const uniqueMatricules = Object.keys(matriculeSummary);
 
-    // --- Récupération des indices dans resultTable
-    const resultHeaders = Array.from(resultTable.querySelectorAll('thead th')).map(th => th.innerText.trim().toLowerCase());
+    // --- Récupération des indices dans resultTable ---
+    const resultHeaders = Array.from(resultTable.querySelectorAll('thead th')).map(th => 
+        th.textContent.replace(/\s+/g,' ').trim().toLowerCase()
+    );
     const matriculeIndexRes = resultHeaders.indexOf('matricule');
     const tttIndexRes = resultHeaders.indexOf('ttt');
     const volumeIndexRes = resultHeaders.indexOf('volume produit');
-    if (matriculeIndexRes === -1 || tttIndexRes === -1 || volumeIndexRes === -1) return;
+
+    if (matriculeIndexRes === -1) console.warn("Colonne 'MATRICULE' non trouvée dans resultTable");
+    if (tttIndexRes === -1) console.warn("Colonne 'TTT' non trouvée dans resultTable");
+    if (volumeIndexRes === -1) console.warn("Colonne 'Volume Produit' non trouvée dans resultTable");
 
     const tbody = resultTable.querySelector('tbody');
     if (!tbody) return;
 
-    // --- Injecter les valeurs ligne par ligne
+    // --- Injecter les valeurs ligne par ligne ---
     const rows = Array.from(tbody.querySelectorAll('tr'));
     uniqueMatricules.forEach((matricule, idx) => {
-        if (idx >= rows.length) return; // si plus de lignes dispo, on arrête
+        if (idx >= rows.length) return; // pas assez de lignes disponibles
 
         const tr = rows[idx];
         const cells = tr.querySelectorAll('td');
@@ -944,6 +1017,7 @@ function summary() {
         const ttt = `${hours}:${minutes}:${seconds}`;
         const volume = matriculeSummary[matricule].volume;
 
+        // --- Injection dans les colonnes correspondantes ---
         if (cells[matriculeIndexRes]) cells[matriculeIndexRes].innerText = matricule;
         if (cells[tttIndexRes]) cells[tttIndexRes].innerText = ttt;
         if (cells[volumeIndexRes]) cells[volumeIndexRes].innerText = volume;
@@ -959,12 +1033,14 @@ function summary() {
 
 
 
+
+
 //------------------- GESTION AFFICHAGE / MASQUAGE COLONNE---------------------->
 document.addEventListener('DOMContentLoaded', function () {
     const table = document.getElementById('resultTable');
     
     // Index (0-based) des colonnes "utiles"
-    const colonnesUtiles = [0, 2, 9, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+    const colonnesUtiles = [0, 2, 9, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 26];
     
     function afficherColonnesUtiles() {
         const allRows = table.querySelectorAll('tr');
@@ -1008,27 +1084,37 @@ function calculateConsensusStats() {
     let zz = 0;       // traités
     let hitIdCount = 0; // groupes valides
 
+    let okHitId = 0, koHitId = 0; // pour calcul accuracy hitid
+
+    const idxJuge = 17;         // colonne "Juge" (ajuster si différent)
+    const idxStatus = 23;       // colonne "Status assignement"
+    const idxCol24 = 24;        // Accord_Single
+    const idxCol25 = 25;        // Accord_Best
+    const idxStatusHitID = 26;  // colonne "Status HitID"
+
     for (let i = 0; i < rows.length; i += 3) { // par pas de 3 lignes
         const group = rows.slice(i, i + 3);
         if (group.length === 0) continue;
 
         // 1ère ligne du groupe
         const firstRow = group[0];
-        const firstSelect = firstRow.querySelectorAll("td")[17]?.querySelector("select");
-        const firstValue = firstSelect ? firstSelect.value.trim() : firstRow.querySelectorAll("td")[17]?.textContent.trim();
+        const firstSelect = firstRow.querySelectorAll("td")[idxJuge]?.querySelector("select");
+        const firstValue = firstSelect ? firstSelect.value.trim() : firstRow.querySelectorAll("td")[idxJuge]?.textContent.trim();
 
         if (firstValue !== "" && firstValue !== "--non jugé--") {
             zz += group.length;
             hitIdCount++;
 
-            group.forEach((row, idx) => {
-                const cells = row.querySelectorAll("td");
-                const col24 = cells[24]?.textContent.trim() || "";
-                const col25 = cells[25]?.textContent.trim() || "";
-                const status = cells[23]?.textContent.trim() || "";
+            // --- pour HitID ---
+            const statusHitID = group[0].querySelectorAll("td")[idxStatusHitID]?.textContent.trim() || "";
+            if (statusHitID === "OK") okHitId++;
+            else if (statusHitID === "KO") koHitId++;
 
-                // --- Logs détaillés pour chaque ligne ---
-                console.log(`Ligne ${i + idx + 1} -> col24: "${col24}", col25: "${col25}", status: "${status}"`);
+            group.forEach((row) => {
+                const cells = row.querySelectorAll("td");
+                const col24 = cells[idxCol24]?.textContent.trim() || "";
+                const col25 = cells[idxCol25]?.textContent.trim() || "";
+                const status = cells[idxStatus]?.textContent.trim() || "";
 
                 // compter toutes les occurrences
                 if (col24 === "Correcte_Maj") a++;
@@ -1047,29 +1133,16 @@ function calculateConsensusStats() {
         }
     }
 
-    const accuracy = (okCount + koCount > 0 ? (okCount / (okCount + koCount) * 100).toFixed(2) : "0.00");
+    const accuracyAssign = (okCount + koCount > 0 ? (okCount / (okCount + koCount) * 100).toFixed(2) : "0.00");
+    const accuracyHitID = (okHitId + koHitId > 0 ? (okHitId / (okHitId + koHitId) * 100).toFixed(2) : "0.00");
 
-    // --- Résumé final ---
-    console.log("Summary counts:");
-    console.log("Correcte_Maj:", a);
-    console.log("Incorrecte_Maj:", b);
-    console.log("Correcte_Min:", c);
-    console.log("Incorrecte_Min:", d);
-    console.log("OK:", okCount, "| KO:", koCount);
-    console.log("Traités:", zz, "| HitId:", hitIdCount, "| Accuracy:", accuracy + "%");
-
-    document.getElementById("consensusStats").innerHTML =
-    `Traités: <strong>${zz}</strong> Assignements | <strong>${hitIdCount}</strong> HitId<br>
-     c_maj: <strong>${a}</strong> | c_min: <strong>${c}</strong> | i_maj: <strong>${b}</strong> | i_min: <strong>${d}</strong><br>
-     accuracy: <strong>${accuracy} %</strong>`;
+   // --- Résumé final ---
+	document.getElementById("consensusStats").innerHTML =
+	`Traités: <strong>${zz}</strong> Assignements | <strong>${hitIdCount}</strong> HitId<br>
+	c_maj: <strong>${a}</strong> | c_min: <strong>${c}</strong> | i_maj: <strong>${b}</strong> | i_min: <strong>${d}</strong><br>
+	accuracy assignement: <strong>${accuracyAssign} %</strong><br>
+	accuracy hitid: <strong>${accuracyHitID} %</strong>`;
 }
-
-
-
-
-
-
-
 
 
 // Ajouter l'event listener
@@ -1093,25 +1166,50 @@ document.getElementById('resetFileDataBtn').addEventListener('click', () => {
     document.getElementById('confirmOverlay').style.display = 'flex';
 
     // Bouton OUI
-	document.getElementById('confirmYes').onclick = () => {
-		const keysToDelete = [];
-		for (let i = 0; i < localStorage.length; i++) {
-			const key = localStorage.key(i);
-			if (key && key.startsWith(fileName)) {
-				keysToDelete.push(key);
-			}
-		}
-		keysToDelete.forEach(key => localStorage.removeItem(key));
+    document.getElementById('confirmYes').onclick = () => {
+        const keysToDelete = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(fileName)) {
+                keysToDelete.push(key);
+            }
+        }
+        keysToDelete.forEach(key => localStorage.removeItem(key));
 
-		alert(`✅ Les données liées au fichier "${fileName}" ont été supprimées (${keysToDelete.length} éléments).`);
+        alert(`✅ Les données liées au fichier "${fileName}" ont été supprimées (${keysToDelete.length} éléments).`);
 
-		// Fermer la popup
-		document.getElementById('confirmOverlay').style.display = 'none';
+        // Fermer la popup
+        document.getElementById('confirmOverlay').style.display = 'none';
 
-		// Rafraîchir la page
-		location.reload();
-	};
+        // Rafraîchir la page
+        location.reload();
+    };
+
+    // Bouton Annuler
+    document.getElementById('confirmNo').onclick = () => {
+        // Fermer la popup sans rien faire
+        document.getElementById('confirmOverlay').style.display = 'none';
+    };
 });
+
+//SPECIAL POUR FICHIER EXCEL
+function excelTimeToHHMMSS(excelNum) {
+    if (excelNum == null || excelNum === "") return "";
+    
+    let num = parseFloat(excelNum.toString().replace(",", "."));
+    if (isNaN(num)) return "";
+
+    let totalSeconds = Math.round(num * 86400);
+    let hours = Math.floor(totalSeconds / 3600);
+    let minutes = Math.floor((totalSeconds % 3600) / 60);
+    let seconds = totalSeconds % 60;
+
+    return [
+        hours.toString().padStart(2, "0"),
+        minutes.toString().padStart(2, "0"),
+        seconds.toString().padStart(2, "0")
+    ].join(":");
+}
 
 </script>
 
