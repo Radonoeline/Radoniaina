@@ -861,8 +861,8 @@ function juge_moi() {
         rowCells.forEach((c, idx) => {
             const val = statSingleValues[idx];
             if (!majoritaireSingle) return setCellValue(c[idxAccordSingle], "");
-            if (val === "OK") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Correct_Maj" : "Correct_Min");
-            else if (val === "KO") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Incorrecte_Maj" : "Incorrect_Min");
+            if (val === "OK") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Correcte_Maj" : "Correcte_Min");
+            else if (val === "KO") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Incorrecte_Maj" : "Incorrecte_Min");
             else setCellValue(c[idxAccordSingle], "");
         });
 
@@ -878,8 +878,8 @@ function juge_moi() {
         rowCells.forEach((c, idx) => {
             const val = statBestValues[idx];
             if (!majoritaireBest) return setCellValue(c[idxAccordBest], "");
-            if (val === "OK") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Correct_Maj" : "Correct_Min");
-            else if (val === "KO") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Incorrecte_Maj" : "Incorrect_Min");
+            if (val === "OK") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Correcte_Maj" : "Correcte_Min");
+            else if (val === "KO") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Incorrecte_Maj" : "Incorrecte_Min");
             else setCellValue(c[idxAccordBest], "");
         });
     }
@@ -999,13 +999,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-//AFFICHAGE SUMMARY EN BAS DE LA page
+// AFFICHAGE SUMMARY EN BAS DE LA page
 function calculateConsensusStats() {
     const rows = Array.from(document.querySelectorAll("#resultTable tbody tr"));
 
     let a = 0, b = 0, c = 0, d = 0;
     let okCount = 0, koCount = 0;
-    let zz = 0;  // traités
+    let zz = 0;       // traités
     let hitIdCount = 0; // groupes valides
 
     for (let i = 0; i < rows.length; i += 3) { // par pas de 3 lignes
@@ -1018,42 +1018,56 @@ function calculateConsensusStats() {
         const firstValue = firstSelect ? firstSelect.value.trim() : firstRow.querySelectorAll("td")[17]?.textContent.trim();
 
         if (firstValue !== "" && firstValue !== "--non jugé--") {
-            // Ce groupe est compté
-            zz += group.length;       // traités = 3 lignes
-            hitIdCount += 1;          // 1 HitId
+            zz += group.length;
+            hitIdCount++;
 
-            // parcourir toutes les lignes du groupe pour c_maj, c_min, etc.
-            group.forEach(row => {
+            group.forEach((row, idx) => {
                 const cells = row.querySelectorAll("td");
-                const single = cells[24]?.textContent.trim();
-                const best = cells[25]?.textContent.trim();
-                const status = cells[23]?.textContent.trim();
+                const col24 = cells[24]?.textContent.trim() || "";
+                const col25 = cells[25]?.textContent.trim() || "";
+                const status = cells[23]?.textContent.trim() || "";
 
-                if(single === "Correct_Maj") a++;
-                if(single === "Incorrect_Maj") b++;
-                if(single === "Correct_Min") c++;
-                if(single === "Incorrect_Min") d++;
+                // --- Logs détaillés pour chaque ligne ---
+                console.log(`Ligne ${i + idx + 1} -> col24: "${col24}", col25: "${col25}", status: "${status}"`);
 
-                if(best === "Correct_Maj") a++;
-                if(best === "Incorrect_Maj") b++;
-                if(best === "Correct_Min") c++;
-                if(best === "Incorrect_Min") d++;
+                // compter toutes les occurrences
+                if (col24 === "Correcte_Maj") a++;
+                if (col24 === "Incorrecte_Maj") b++;
+                if (col24 === "Correcte_Min") c++;
+                if (col24 === "Incorrecte_Min") d++;
 
-                if(status === "OK") okCount++;
-                if(status === "KO") koCount++;
+                if (col25 === "Correcte_Maj") a++;
+                if (col25 === "Incorrecte_Maj") b++;
+                if (col25 === "Correcte_Min") c++;
+                if (col25 === "Incorrecte_Min") d++;
+
+                if (status === "OK") okCount++;
+                if (status === "KO") koCount++;
             });
         }
     }
 
-    const ff = hitIdCount; // HitId = nombre de groupes valides
     const accuracy = (okCount + koCount > 0 ? (okCount / (okCount + koCount) * 100).toFixed(2) : "0.00");
 
-    document.getElementById("consensusStats").innerHTML =
-    `Traités: <strong>${zz}</strong> Assignements |  <strong>${ff}</strong> HitId<br>
-     c_maj: <strong>${a}</strong>| c_min: <strong>${c}</strong> | i_maj: <strong>${b}</strong> | i_min: <strong>${d}</strong><br>
-     accuracy: <strong>${accuracy} %</strong>`;
+    // --- Résumé final ---
+    console.log("Summary counts:");
+    console.log("Correcte_Maj:", a);
+    console.log("Incorrecte_Maj:", b);
+    console.log("Correcte_Min:", c);
+    console.log("Incorrecte_Min:", d);
+    console.log("OK:", okCount, "| KO:", koCount);
+    console.log("Traités:", zz, "| HitId:", hitIdCount, "| Accuracy:", accuracy + "%");
 
+    document.getElementById("consensusStats").innerHTML =
+    `Traités: <strong>${zz}</strong> Assignements | <strong>${hitIdCount}</strong> HitId<br>
+     c_maj: <strong>${a}</strong> | c_min: <strong>${c}</strong> | i_maj: <strong>${b}</strong> | i_min: <strong>${d}</strong><br>
+     accuracy: <strong>${accuracy} %</strong>`;
 }
+
+
+
+
+
 
 
 
