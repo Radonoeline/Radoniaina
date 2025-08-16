@@ -5,138 +5,202 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QAS Utility</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
-
   <style>
     body {
       margin: 0;
-      padding: 0;
-      font-family: "Roboto", sans-serif;
-      background: #f5f7fa;
-      color: #333;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f3f4f6, #e0f2fe);
+      color: #222;
+      overflow-x: hidden;
     }
 
-    /* Banner */
+    /* Bannière en haut (grille 3 colonnes pour centrer le bouton) */
     .banner {
       position: fixed;
       top: 0;
-      right: 0;
       left: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      padding: 8px 16px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr; /* bouton au centre */
       align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
       z-index: 1000;
     }
-
-    .banner span {
+    .banner-title {
+      justify-self: start;    /* à gauche */
       font-weight: 500;
-      color: #0073e6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60vw;
     }
-
-    .banner button {
-      background: #0073e6;
-      color: white;
+    .banner .menu-btn {
+      justify-self: center;   /* centré */
+      background: white;
+      color: #2563eb;
       border: none;
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
-      transition: background 0.2s ease;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .banner .menu-btn:hover {
+      background: #f3f4f6;
+    }
+    /* Espace vide à droite pour équilibrer visuellement */
+    .banner-spacer {
+      justify-self: end;
+      width: 1px; height: 1px; /* simple placeholder */
+      opacity: 0;
     }
 
-    .banner button:hover {
-      background: #005bb5;
+    /* Backdrop pour modal */
+    .backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 998;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .backdrop.visible {
+      display: block;
+      opacity: 1;
     }
 
-    /* Popup Menu */
+    /* Fenêtre popup (modal) */
     .menu-popup {
       display: none;
       position: fixed;
-      top: 70px;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-      padding: 20px 30px;
-      max-width: 400px;
-      width: 90%;
+      transform: translate(-50%, -50%) scale(0.98);
+      width: min(92vw, 640px);
+      max-height: min(80vh, 720px);
+      overflow: auto;
+      background: white;
+      padding: 20px 20px 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
       z-index: 999;
       opacity: 0;
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.2s ease, transform 0.2s ease;
     }
-
     .menu-popup.visible {
       display: block;
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      transform: translate(-50%, -50%) scale(1);
     }
+
+    .menu-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      position: sticky;
+      top: 0;
+      background: white;
+      padding-bottom: 8px;
+      z-index: 1;
+    }
+    .menu-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #111827;
+    }
+    .close-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: filter 0.15s ease;
+    }
+    .close-btn:hover { filter: brightness(0.95); }
 
     .menu-popup ul {
       list-style: none;
       padding: 0;
       margin: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
-
-    .menu-popup ul li {
-      margin: 12px 0;
-    }
-
     .menu-popup ul li a {
-      text-decoration: none;
-      color: #333;
-      font-weight: 500;
-      padding: 8px 12px;
       display: block;
-      border-radius: 6px;
-      transition: background 0.2s ease, color 0.2s ease;
+      padding: 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      color: #2563eb;
+      background: #f3f4f6;
+      text-align: center;
+      transition: all 0.2s ease;
+      border: 1px solid #e5e7eb;
     }
-
     .menu-popup ul li a:hover {
-      background: #0073e6;
+      background: #2563eb;
       color: white;
     }
 
-    /* Main content */
-    main#mainContent {
+    /* Contenu */
+    main {
       margin-top: 60px;
-      padding: 20px;
-      min-height: 90vh;
+    }
+
+    /* Optionnel: empêcher le scroll page quand modal ouvert */
+    body.modal-open {
+      overflow: hidden;
     }
   </style>
 </head>
 <body>
-  <div class="banner ontop">
-    <span id="currentpage"></span>
-    <button onclick="toggleMenu()">☰ Menu</button>
+  <div class="banner">
+    <span id="currentpage" class="banner-title">QAS Utility</span>
+    <button class="menu-btn" id="menuButton" aria-haspopup="dialog" aria-controls="menu" onclick="openMenu()">☰ Menu</button>
+    <span class="banner-spacer" aria-hidden="true"></span>
   </div>
 
-  <div id="menu" class="menu-popup">
+  <!-- Backdrop -->
+  <div id="backdrop" class="backdrop" onclick="closeMenu()"></div>
+
+  <!-- Fenêtre flottante centrée -->
+  <div id="menu" class="menu-popup" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+    <div class="menu-header">
+      <div class="menu-title" id="menuTitle">Raccourcis</div>
+      <button class="close-btn" onclick="closeMenu()" aria-label="Fermer">Fermer ✕</button>
+    </div>
     <ul>
       <li><a href="#" onclick="loadPage('assets/Accord_detaillees.html', this)">Accord détaillées</a></li>
       <li><a href="#" onclick="loadPage('assets/Estimation+Accord.html', this)">Accord & Partage</a></li>
       <li><a href="#" onclick="loadPage('assets/CRM utilities_sans_escalier(temp).html', this)">Rapport QAS Utilities</a></li>
       <li><a href="#" onclick="loadPage('assets/Spinner.html', this)">Spinner Utilities</a></li>
-      <li><a href="#" onclick="loadPage('assets/ravo.html', this)">Identification by Ravo</a></li>
-      <li><a href="#" onclick="loadPage('assets/Details_ASIN_Generator.html', this)">Details ASIN Generator</a></li>
+      <!--<li><a href="#" onclick="loadPage('assets/ravo.html', this)">Identification by Ravo</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Details_ASIN_Generator.html', this)">Details ASIN Generator</a></li>-->
       <li><a href="#" onclick="loadPage('assets/Luxembourg_vercel.html', this)">Luxembourg</a></li>
       <li><a href="#" onclick="loadPage('assets/vercel_picking (latest).html', this)">Vercel Picker</a></li>
-      <li><a href="#" onclick="loadPage('assets/ASIN_VERIF.html', this)">Identical ASIN Finder</a></li>
+      <!--<li><a href="#" onclick="loadPage('assets/ASIN_VERIF.html', this)">Identical ASIN Finder</a></li>-->
       <li><a href="#" onclick="loadPage('assets/consultation_congé_qas.html', this)">Gestion Planning Congé</a></li>
-      <li><a href="#" onclick="loadPage('assets/JUSTIFICATIF to FORM.html', this)">JUSTIFICATIF to FORM</a></li>
-      <li><a href="#" onclick="loadPage('assets/Data_Monthly_Compare.html', this)">Data Monthly Comparator</a></li>
-      <li><a href="#" onclick="loadPage('assets/Show erreur.html', this)">DATA ASIN to Error List</a></li>
-      <li><a href="#" onclick="loadPage('assets/Flexible_Data_Table_Generator.html', this)">Flexible Table Generator</a></li>
-      <li><a href="#" onclick="loadPage('assets/Monthly Data Reporting.html', this)">Monthly Data Reporting</a></li>
-      <li><a href="#" onclick="loadPage('assets/Summary_Filtered_Hitid.html', this)">Summary Filtered Hitid</a></li>
-      <li><a href="#" onclick="loadPage('assets/Flexible_Data_Table_Generator (key sorted).html', this)">Flexible Table Generator II</a></li>
-      <li><a href="#" onclick="loadPage('assets/Top Performer_Low_Worker.html', this)">Top Performer & Low Worker</a></li>
-      <li><a href="#" onclick="loadPage('assets/CS_FR_JSON_REGENERATOR.html', this)">JSON Generator CS/FU</a></li>
-      <li><a href="#" onclick="loadPage('assets/Before_Picking.html', this)">Before Picking...</a></li>
-      <li><a href="#" onclick="loadPage('assets/Image_tester.html', this)">Image Validator CS/FU</a></li>
+      <!--<li><a href="#" onclick="loadPage('assets/JUSTIFICATIF to FORM.html', this)">JUSTIFICATIF to FORM</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Data_Monthly_Compare.html', this)">Data Monthly Comparator</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Show erreur.html', this)">DATA ASIN to Error List</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Flexible_Data_Table_Generator.html', this)">Flexible Table Generator</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Monthly Data Reporting.html', this)">Monthly Data Reporting</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Summary_Filtered_Hitid.html', this)">Summary Filtered Hitid</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Flexible_Data_Table_Generator (key sorted).html', this)">Flexible Table Generator II</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Top Performer_Low_Worker.html', this)">Top Performer & Low Worker</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/CS_FR_JSON_REGENERATOR.html', this)">JSON Generator CS/FU</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Before_Picking.html', this)">Before Picking...</a></li>-->
+      <!--<li><a href="#" onclick="loadPage('assets/Image_tester.html', this)">Image Validator CS/FU</a></li>-->
       <li><a href="#" onclick="loadPage('assets/copie_Nettoyage_Shopping.html', this)">My Shopping</a></li>
       <li><a href="#" onclick="loadPage('assets/TeamZ Corporation.html', this)">TeamZ Corporation</a></li>
     </ul>
@@ -145,31 +209,69 @@
   <main id="mainContent"></main>
 
   <script>
-    function toggleMenu() {
-      document.getElementById("menu").classList.toggle("visible");
+    const menuEl = document.getElementById("menu");
+    const backdropEl = document.getElementById("backdrop");
+    const menuBtn = document.getElementById("menuButton");
+    const titleEl = document.getElementById("currentpage");
+
+    function openMenu() {
+      menuEl.classList.add("visible");
+      backdropEl.classList.add("visible");
+      document.body.classList.add("modal-open");
+      // focus pour accessibilité
+      menuEl.setAttribute("tabindex", "-1");
+      menuEl.focus();
     }
 
+    function closeMenu() {
+      menuEl.classList.remove("visible");
+      backdropEl.classList.remove("visible");
+      document.body.classList.remove("modal-open");
+      menuBtn.focus();
+    }
+
+    function toggleMenu() {
+      if (menuEl.classList.contains("visible")) closeMenu(); else openMenu();
+    }
+
+    // Échap pour fermer
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && menuEl.classList.contains("visible")) {
+        e.preventDefault();
+        closeMenu();
+      }
+    });
+
     function loadPage(url, el) {
-      document.getElementById("mainContent").innerHTML =
-        '<iframe src="' + url + '" width="100%" height="100%" frameborder="0"></iframe>';
-
-      document.getElementById("mainContent").style.height = "calc(100vh - 70px)";
+      const main = document.getElementById("mainContent");
+      main.innerHTML = `<iframe src="${url}" width="100%" height="100%" frameborder="0"></iframe>`;
+      main.style.height = "calc(100vh - 60px)";
       window.scrollTo(0, 0);
-      document.getElementById("menu").classList.remove("visible");
 
+      // Fermer le menu
+      closeMenu();
+
+      // Sauvegarde dernière page
       localStorage.setItem("lastPage", url);
       localStorage.setItem("lastPageTitle", el ? el.textContent : document.title);
 
-      document.querySelectorAll(".menu-popup ul li a").forEach(a => {
-        a.style.backgroundColor = "transparent";
-        a.style.color = "#333";
-      });
-
-      if (el) {
-        el.style.backgroundColor = "#0073e6";
-        el.style.color = "white";
-      }
-
+      // Mettre à jour titre courant
+      titleEl.textContent = el ? el.textContent : titleEl.textContent;
       document.title = el ? el.textContent : document.title;
-      document.getElementById("currentpage").textContent =
-        el ? el.textContent : document.getElementById("c
+    }
+
+    window.onload = function() {
+      const lastPage = localStorage.getItem("lastPage");
+      const lastPageTitle = localStorage.getItem("lastPageTitle");
+
+      if (lastPage && lastPageTitle) {
+        loadPage(lastPage, null);
+        titleEl.textContent = lastPageTitle;
+        document.title = lastPageTitle;
+      } else {
+        openMenu(); // ouvrir directement le menu au premier chargement
+      }
+    };
+  </script>
+</body>
+</html>
