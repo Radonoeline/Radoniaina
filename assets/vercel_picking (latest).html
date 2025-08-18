@@ -845,22 +845,35 @@ queryImg.onload = () => {
 queryWrapper.addEventListener('wheel', (e) => {
   e.preventDefault();
 
-  // Normalisation du delta
-  let delta = e.deltaY;
-  if (e.deltaMode === 1) delta *= 16;
-  else if (e.deltaMode === 2) delta *= window.innerHeight;
+  // Valeur actuelle du zoom ou 1 par défaut
+  let scale = parseFloat(queryWrapper.dataset.scale);
+  if (isNaN(scale)) scale = 1;
 
-  const zoomSpeed = 0.0015; // plus petit = plus fluide
-  const scaleFactor = 1 - delta * zoomSpeed;
+  // Pas de zoom constant (5%)
+  const zoomStep = 0.05;
 
-  let scale = parseFloat(queryWrapper.dataset.scale) || 1;
-  scale = Math.max(0.5, Math.min(3, scale * scaleFactor));
+  // Direction du scroll
+  if (e.deltaY > 0) {
+    // molette vers le bas → zoom arrière
+    scale *= (1 - zoomStep);
+  } else {
+    // molette vers le haut → zoom avant
+    scale *= (1 + zoomStep);
+  }
 
+  // Limites de zoom
+  scale = Math.max(0.5, Math.min(3, scale));
+
+  // Récupère les autres paramètres
   const x = parseFloat(queryWrapper.dataset.x) || 0;
   const y = parseFloat(queryWrapper.dataset.y) || 0;
   const rotation = parseFloat(queryWrapper.dataset.rotation) || 0;
 
-  queryWrapper.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
+  // Applique la transformation
+  queryWrapper.style.transform =
+    `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
+
+  // Sauvegarde la nouvelle valeur
   queryWrapper.dataset.scale = scale;
 });
 
@@ -1288,18 +1301,8 @@ function showASINImage(src) {
 canvas.onwheel = (e) => {
   e.preventDefault();
 
-  // Normalisation du delta pour un zoom homogène partout
-  let delta = e.deltaY;
-  if (e.deltaMode === 1) delta *= 16; // lignes → pixels
-  else if (e.deltaMode === 2) delta *= window.innerHeight; // pages → pixels
-
-  const zoomSpeed = 0.0015; // plus petit = plus fluide
-  const scaleFactor = 1 - delta * zoomSpeed;
-
-  // Position centre avant zoom
-  const rect = canvas.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
+  // Facteur constant (ex: ±5%)
+  const scaleFactor = getZoomFactor(e, 0.05);
 
   // Mise à jour du scale
   currentScale = Math.max(0.1, Math.min(5, currentScale * scaleFactor));
@@ -1307,7 +1310,11 @@ canvas.onwheel = (e) => {
   // Redimensionne le canvas en tenant compte de la rotation et du scale
   const newSize = resizeCanvasForRotation(canvas, loadedImage, currentAngle, currentScale);
 
-  // Positionne le canvas pour garder le centre fixe à l'écran
+  // Position centre avant zoom
+  const rect = canvas.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
   canvas.style.position = 'fixed';
   canvas.style.left = (centerX - newSize.width / 2) + 'px';
   canvas.style.top = (centerY - newSize.height / 2) + 'px';
@@ -2801,13 +2808,6 @@ document.getElementById('hitContainer').addEventListener('change', (event) => {
     }
   }
 });
-
-
-
-
-
-
-
 
 
   </script>
