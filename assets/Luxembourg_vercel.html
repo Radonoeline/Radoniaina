@@ -861,21 +861,26 @@ function juge_moi() {
             });
         }
 
-        // -----------------------------
-        // Status assignement
-        rowCells.forEach(c => {
-            const statSingle = getCellValue(c[idxStatSingle]);
-            const statBest = getCellValue(c[idxStatBest]);
-            if (statSingle === "OK" && statBest === "OK") {
-                setCellValue(c[idxStatus], "OK");
-            } else if (statSingle === "" && statBest === "") {
-                setCellValue(c[idxStatus], "");
-            } else {
-                setCellValue(c[idxStatus], "KO");
-            }
-        });
+// -----------------------------
+// Status assignement
+rowCells.forEach(c => {
+    const statSingle = getCellValue(c[idxStatSingle]);
+    const statBest = getCellValue(c[idxStatBest]);
+
+    if (statSingle === "OK" && statBest === "OK") {
+        setCellValue(c[idxStatus], "OK");
+    } else if (statSingle === "OK" && statBest === "") {
+        // ✅ Cas spécial : Stat_Single = OK et Stat_Best vide
+        setCellValue(c[idxStatus], "OK");
+    } else if (statSingle === "" && statBest === "") {
+        setCellValue(c[idxStatus], "");
+    } else {
+        setCellValue(c[idxStatus], "KO");
+    }
+});
 		
 		// -----------------------------
+		
 		// Status HitID
 		const statStatusValues = rowCells.map(c => getCellValue(c[idxStatus]));
 		if (statStatusValues.every(v => v === "")) {
@@ -1133,16 +1138,26 @@ function calculateConsensusStats() {
         }
     }
 
+    // Accuracy assignement et hitid
     const accuracyAssign = (okCount + koCount > 0 ? (okCount / (okCount + koCount) * 100).toFixed(2) : "0.00");
     const accuracyHitID = (okHitId + koHitId > 0 ? (okHitId / (okHitId + koHitId) * 100).toFixed(2) : "0.00");
 
-   // --- Résumé final ---
-	document.getElementById("consensusStats").innerHTML =
-	`Traités: <strong>${zz}</strong> Assignements | <strong>${hitIdCount}</strong> HitId<br>
-	c_maj: <strong>${a}</strong> | c_min: <strong>${c}</strong> | i_maj: <strong>${b}</strong> | i_min: <strong>${d}</strong><br>
-	accuracy assignement: <strong>${accuracyAssign} %</strong><br>
-	accuracy hitid: <strong>${accuracyHitID} %</strong>`;
+    // Calcul des pourcentages accords
+    const totalAccords = a + b + c + d;
+    const cMajPct = totalAccords > 0 ? (a / totalAccords * 100).toFixed(2) : "0.00";
+    const cMinPct = totalAccords > 0 ? (c / totalAccords * 100).toFixed(2) : "0.00";
+    const iMajPct = totalAccords > 0 ? (b / totalAccords * 100).toFixed(2) : "0.00";
+    const iMinPct = totalAccords > 0 ? (d / totalAccords * 100).toFixed(2) : "0.00";
+
+    // --- Résumé final ---
+    document.getElementById("consensusStats").innerHTML =
+    `Traités: <strong>${zz}</strong> Assignements | <strong>${hitIdCount}</strong> HitId<br>
+    c_maj: <strong>${cMajPct} %</strong> | c_min: <strong>${cMinPct} %</strong> | 
+    i_maj: <strong>${iMajPct} %</strong> | i_min: <strong>${iMinPct} %</strong><br>
+    accuracy assignement: <strong>${accuracyAssign} %</strong><br>
+    accuracy hitid: <strong>${accuracyHitID} %</strong>`;
 }
+
 
 
 // Ajouter l'event listener
