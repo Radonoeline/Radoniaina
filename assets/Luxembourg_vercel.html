@@ -899,8 +899,8 @@ function juge_moi() {
         rowCells.forEach((c, idx) => {
             const val = statSingleValues[idx];
             if (!majoritaireSingle) return setCellValue(c[idxAccordSingle], "");
-            if (val === "OK") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Correcte_Maj" : "Correcte_Min");
-            else if (val === "KO") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Incorrecte_Maj" : "Incorrecte_Min");
+            if (val === "OK") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Correct_Maj" : "Correct_Min");
+            else if (val === "KO") setCellValue(c[idxAccordSingle], (val === majoritaireSingle) ? "Incorrect_Maj" : "Incorrect_Min");
             else setCellValue(c[idxAccordSingle], "");
         });
 
@@ -916,8 +916,8 @@ function juge_moi() {
         rowCells.forEach((c, idx) => {
             const val = statBestValues[idx];
             if (!majoritaireBest) return setCellValue(c[idxAccordBest], "");
-            if (val === "OK") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Correcte_Maj" : "Correcte_Min");
-            else if (val === "KO") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Incorrecte_Maj" : "Incorrecte_Min");
+            if (val === "OK") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Correct_Maj" : "Correct_Min");
+            else if (val === "KO") setCellValue(c[idxAccordBest], (val === majoritaireBest) ? "Incorrect_Maj" : "Incorrect_Min");
             else setCellValue(c[idxAccordBest], "");
         });
     }
@@ -1117,15 +1117,15 @@ function calculateConsensusStats() {
                 const status = cells[idxStatus]?.textContent.trim() || "";
 
                 // compter toutes les occurrences
-                if (col24 === "Correcte_Maj") a++;
-                if (col24 === "Incorrecte_Maj") b++;
-                if (col24 === "Correcte_Min") c++;
-                if (col24 === "Incorrecte_Min") d++;
+                if (col24 === "Correct_Maj") a++;
+                if (col24 === "Incorrect_Maj") b++;
+                if (col24 === "Correct_Min") c++;
+                if (col24 === "Incorrect_Min") d++;
 
-                if (col25 === "Correcte_Maj") a++;
-                if (col25 === "Incorrecte_Maj") b++;
-                if (col25 === "Correcte_Min") c++;
-                if (col25 === "Incorrecte_Min") d++;
+                if (col25 === "Correct_Maj") a++;
+                if (col25 === "Incorrect_Maj") b++;
+                if (col25 === "Correct_Min") c++;
+                if (col25 === "Incorrect_Min") d++;
 
                 if (status === "OK") okCount++;
                 if (status === "KO") koCount++;
@@ -1214,4 +1214,5 @@ function excelTimeToHHMMSS(excelNum) {
 </script>
 
 </body>
+
 </html>
