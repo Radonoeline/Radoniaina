@@ -842,40 +842,28 @@ queryImg.onload = () => {
 
 
 // ======== 🆕 Zoom via molette (fluide et constant) ========
-queryWrapper.addEventListener('wheel', (e) => {
+queryWrapper.addEventListener("wheel", (e) => {
   e.preventDefault();
 
-  // Valeur actuelle du zoom ou 1 par défaut
-  let scale = parseFloat(queryWrapper.dataset.scale);
-  if (isNaN(scale)) scale = 1;
+  let scale = parseFloat(queryWrapper.dataset.scale) || 1;
+  const step = 0.05; // 5% par cran
 
-  // Pas de zoom constant (5%)
-  const zoomStep = 0.05;
+  scale += (e.deltaY < 0 ? step : -step);
+  scale = Math.min(Math.max(scale, 0.5), 3); // limites 50%-300%
 
-  // Direction du scroll
-  if (e.deltaY > 0) {
-    // molette vers le bas → zoom arrière
-    scale *= (1 - zoomStep);
-  } else {
-    // molette vers le haut → zoom avant
-    scale *= (1 + zoomStep);
-  }
+  queryWrapper.dataset.scale = scale;
 
-  // Limites de zoom
-  scale = Math.max(0.5, Math.min(3, scale));
-
-  // Récupère les autres paramètres
   const x = parseFloat(queryWrapper.dataset.x) || 0;
   const y = parseFloat(queryWrapper.dataset.y) || 0;
   const rotation = parseFloat(queryWrapper.dataset.rotation) || 0;
 
-  // Applique la transformation
   queryWrapper.style.transform =
     `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
 
-  // Sauvegarde la nouvelle valeur
-  queryWrapper.dataset.scale = scale;
+  console.log(`QUERY: ${Math.round(scale * 100)}%`);
 });
+
+
 
 
 
@@ -1297,35 +1285,30 @@ function showASINImage(src) {
 
   makeDraggableAndZoomable(canvas, true);
 
-// Zoom avec molette (fluide et constant)
-canvas.onwheel = (e) => {
+// zoom avec roulette fluide
+canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
 
-  // Facteur constant (ex: ±5%)
-  const scaleFactor = getZoomFactor(e, 0.05);
+  // Pas fixe par cran (0.5% ici pour plus de fluidité)
+  const step = 0.005;
 
-  // Mise à jour du scale
-  currentScale = Math.max(0.1, Math.min(5, currentScale * scaleFactor));
+  // Sens du zoom : deltaY positif → zoom arrière, deltaY négatif → zoom avant
+  const direction = -Math.sign(e.deltaY);
 
-  // Redimensionne le canvas en tenant compte de la rotation et du scale
-  const newSize = resizeCanvasForRotation(canvas, loadedImage, currentAngle, currentScale);
+  // Applique le pas
+  currentScale += step * direction;
 
-  // Position centre avant zoom
-  const rect = canvas.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
+  // Limites du zoom : 20% à 200%
+  currentScale = Math.min(Math.max(currentScale, 0.2), 2);
 
-  canvas.style.position = 'fixed';
-  canvas.style.left = (centerX - newSize.width / 2) + 'px';
-  canvas.style.top = (centerY - newSize.height / 2) + 'px';
-
-  // Redessine l’image
+  // Redessine
   requestAnimationFrame(() => {
     drawImage(canvas.getContext("2d"), loadedImage, currentAngle, currentScale);
   });
-};
 
-
+  // Affiche le pourcentage
+  console.log(`ASIN: ${Math.round(currentScale * 100)}%`);
+});
 
 
   // Rotation avec double clic (animée)
