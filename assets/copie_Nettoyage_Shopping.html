@@ -8,10 +8,22 @@
     font-family: Arial, sans-serif;
     margin: 20px;
   }
-  #container {
-    display: flex;
-    gap: 10px;
-  }
+#container {
+  margin-top: 120px;
+  display: flex;
+  gap: 10px;
+  height: calc(100vh - 200px);
+}
+
+/* ✅ Mode horizontal (par défaut : textarea à gauche, tableau à droite) */
+#container.row {
+  flex-direction: row;
+}
+
+/* ✅ Mode vertical (empilé) */
+#container.column {
+  flex-direction: column;
+}
   textarea {
     width: 48%;
     height: 400px;
@@ -165,23 +177,55 @@ caret-color: black;
   border-bottom: 1px dashed #999;
 }
 
+#fixedBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #f8f8f8;
+  padding: 8px 12px;
+  z-index: 1000;
+  border-bottom: 1px solid #ccc;
+
+  display: flex;
+  flex-direction: column;   /* ✅ empile verticalement */
+  align-items: center;
+}
+
+/* 👇 ajuste selon la hauteur réelle de ta barre */
+#container {
+  margin-top: 160px;  /* décale le contenu en dessous de la barre */
+}
+#summaryHeader {
+  flex: 1;
+  text-align: center;
+  font-weight: bold;
+}
+
+#buttons button, #resizeControls button {
+  margin: 0 4px;             /* petit espace entre boutons */
+}
+
 </style>
 </head>
 <body>
-<div id="summaryHeader" align="Center">Pas de données</div>
-<div id="buttons">
-  <button id="btnClean">Nettoyer</button>
-  <button id="verif" class="hidden">Verifier</button>
-  <button id="copyresult">Copier</button>
-  <button id="btnClear">Effacer</button>
+<div id="fixedBar">
+  <div id="summaryHeader" align="center">Pas de données</div>
   
+  <div id="buttons" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
+    <button id="btnClean">Nettoyer</button>
+    <button id="verif" class="hidden">Vérifier</button>
+    <button id="copyresult">Copier</button>
+    <button id="btnClear">Effacer</button>
+  </div>
+
+  <div id="resizeControls" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
+    <button id="leftExpand">&lt;</button>
+    <button id="equalSplit">|</button>
+    <button id="rightExpand">&gt;</button>
+  </div>
 </div>
-<div id="resizeControls">
-  <button id="leftExpand">&lt;</button>
-  <button id="equalSplit">|</button>
-  <button id="rightExpand">&gt;</button>
-  
-</div>
+
 </br>
 <div id="container">
 	
