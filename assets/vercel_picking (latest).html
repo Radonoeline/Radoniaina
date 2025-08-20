@@ -848,8 +848,11 @@ queryWrapper.addEventListener("wheel", (e) => {
   let scale = parseFloat(queryWrapper.dataset.scale) || 1;
   const step = 0.05; // 5% par cran
 
+  // Zoom in/out
   scale += (e.deltaY < 0 ? step : -step);
-  scale = Math.min(Math.max(scale, 0.5), 3); // limites 50%-300%
+
+  // ✅ Clamp entre 20% et 200%
+  scale = Math.min(Math.max(scale, 0.2), 2);
 
   queryWrapper.dataset.scale = scale;
 
@@ -860,8 +863,30 @@ queryWrapper.addEventListener("wheel", (e) => {
   queryWrapper.style.transform =
     `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
 
-  console.log(`QUERY: ${Math.round(scale * 100)}%`);
+  //console.log(`QUERY: ${Math.round(scale * 100)}%`);
 });
+
+// ======== Rotation avec double clic (ajoute +90° en continu) ========
+queryWrapper.ondblclick = () => {
+  let rotation = parseFloat(queryWrapper.dataset.rotation) || 0;
+  rotation += 90; // ➕ Ajoute simplement 90 à chaque double-clic
+  queryWrapper.dataset.rotation = rotation;
+
+  const scale = parseFloat(queryWrapper.dataset.scale) || 1;
+  const x = parseFloat(queryWrapper.dataset.x) || 0;
+  const y = parseFloat(queryWrapper.dataset.y) || 0;
+
+  // Transition douce
+  queryWrapper.style.transition = "transform 0.3s ease";
+  queryWrapper.style.transform =
+    `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
+
+  setTimeout(() => {
+    queryWrapper.style.transition = ""; // reset après l’anim
+  }, 300);
+};
+
+ 
 
 
 
@@ -1292,7 +1317,7 @@ canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
 
   let scale = parseFloat(canvas.dataset.scale) || 1;
-  const step = 0.05; // 5% par cran
+  const step = 0.005; // 0.5% par cran
 
   scale += (e.deltaY < 0 ? step : -step);
   scale = Math.min(Math.max(scale, 0.5), 3); // limites 50%-300%
@@ -1306,7 +1331,7 @@ canvas.addEventListener("wheel", (e) => {
   canvas.style.transform =
     `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
 
-  console.log(`QUERY: ${Math.round(scale * 100)}%`);
+  console.log(`ASIN: ${Math.round(scale * 100)}%`);
 });
 
 
@@ -1316,6 +1341,8 @@ canvas.addEventListener("wheel", (e) => {
     if (!isAnimating) animateRotation(ctx);
   };
 }
+
+
 
 function resizeCanvasForRotation(canvas, img, angle, scale) {
   const rad = angle * Math.PI / 180;
@@ -1418,24 +1445,7 @@ function parseFixedJSON(jsonString) {
   }
 }
 
-//ROTATION ET DEPLACEMENT IMAGE QUERY
-function enableRotationOnWrapper(wrapperId) {
-  const wrapper = document.getElementById(wrapperId);
-  if (!wrapper) return;
-
-  wrapper.dataset.rotation = wrapper.dataset.rotation || "0";
-
-  wrapper.addEventListener('dblclick', () => {
-    const current = parseFloat(wrapper.dataset.rotation) || 0;
-    wrapper.dataset.rotation = current + 90;
-
-    wrapper.style.transition = 'transform 0.3s ease';
-    applyTransform(wrapper);
-
-    // Supprimer la transition après pour éviter qu'elle s’applique au drag/zoom
-    setTimeout(() => wrapper.style.transition = '', 300);
-  });
-}
+//// teto le nesorina
 
 //ROTATION ET DEPLACEMENT IMAGE ASIN
 function enableImageRotation(imgId) {
@@ -1940,23 +1950,7 @@ function initializeWrapper(wrapperId) {
   applyTransform(wrapper);
 }
 
-// Rotation sur double-clic
-function enableRotationOnWrapper(wrapperId) {
-  const wrapper = document.getElementById(wrapperId);
-  if (!wrapper) return;
 
-  wrapper.addEventListener('dblclick', () => {
-    const current = parseFloat(wrapper.dataset.rotation) || 0;
-    wrapper.dataset.rotation = current + 90;
-
-    wrapper.style.transition = 'transform 0.3s ease';
-    applyTransform(wrapper);
-
-    setTimeout(() => {
-      wrapper.style.transition = '';
-    }, 300);
-  });
-}
 
 // Rotation image seule (ASIN par exemple)
 function enableImageRotation(imgId) {
@@ -2021,7 +2015,7 @@ function enableInteractOnWrapper(wrapperId) {
 
 // === APPELS INIT ===
 initializeWrapper('floatingQueryWrapper');
-enableRotationOnWrapper('floatingQueryWrapper');
+//enableRotationOnWrapper('floatingQueryWrapper');
 enableImageRotation('floatingASINImage');
 enableInteractOnWrapper('floatingQueryWrapper');
 
