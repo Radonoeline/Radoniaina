@@ -47,14 +47,8 @@
 /* ✅ Boutons modernisés — sauf #btnClear */
 
 #buttons button:not(#btnClear) {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 18px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  display: flex;
+  gap: 10px;
 }
 
 #buttons button:not(#btnClear):hover {
@@ -63,14 +57,16 @@
 
 /* ✅ Textarea visible (OCR brut) */
 #inputText {
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  font-family: monospace;
-  font-size: 14px;
-  line-height: 1.4;
-  box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 9px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    box-shadow: 9px -8px 3px rgba(0, 0, 0, 0.1);
+
+    margin-top: -60px; /* réduit l'espace au-dessus */
 }
 
 /* ✅ Table harmonisée avec police OCR-friendly */
@@ -111,13 +107,13 @@
 }
 #summaryHeader {
   font-weight: bold;
-  font-size: 1.6em;
-  text-align: center;
-  background-color: yellow;
+  font-size: 1.1em;
   color: black;
-  padding: 10px;
-  border: 2px solid #999;
-  margin-bottom: 15px;
+  margin: 0;
+  position: absolute;
+  top: 10px;   /* distance du haut de la barre */
+  right: 15px; /* distance du bord droit */
+  background-color:yellow;
 }
 
 #resizeControls {
@@ -178,54 +174,79 @@ caret-color: black;
 }
 
 #fixedBar {
-  position: fixed;
+  position: fixed;     /* fixé en haut */
   top: 0;
   left: 0;
-  width: 100%;
-  background: #f8f8f8;
-  padding: 8px 12px;
-  z-index: 1000;
+  right: 0;
+  z-index: 1000;       /* au-dessus du contenu */
+  background: white;   /* fond pour lisibilité */
   border-bottom: 1px solid #ccc;
-
   display: flex;
-  flex-direction: column;   /* ✅ empile verticalement */
+  justify-content: space-between;
   align-items: center;
+  padding: 10px;
+}
+
+#leftZone {
+  display: flex;
+  flex-direction: column; /* empile les 2 blocs de boutons */
+  gap: 10px;
+}
+
+#buttons, #resizeControls {
+  display: flex;
+  gap: 10px;
+}
+
+#summaryHeader {
+  font-weight: bold;
+  font-size: 1.1em;
+  margin: 0;
+  text-align: right;
 }
 
 /* 👇 ajuste selon la hauteur réelle de ta barre */
 #container {
   margin-top: 160px;  /* décale le contenu en dessous de la barre */
 }
-#summaryHeader {
-  flex: 1;
-  text-align: center;
-  font-weight: bold;
-}
+
 
 #buttons button, #resizeControls button {
   margin: 0 4px;             /* petit espace entre boutons */
 }
 
+#btnClean,
+#verif {
+  display: none;
+}
 </style>
 </head>
 <body>
 <div id="fixedBar">
-  <div id="summaryHeader" align="center">Pas de données</div>
-  
-  <div id="buttons" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
-    <button id="btnClean">Nettoyer</button>
-    <button id="verif" class="hidden">Vérifier</button>
-    <button id="copyresult">Copier</button>
-    <button id="btnClear">Effacer</button>
-  </div>
+  <!-- Zone boutons à gauche -->
+  <div id="leftZone">
+    <div id="buttons">
+      <button id="btnClean">Nettoyer</button>
+      <button id="verif" class="hidden">Vérifier</button>
+      <button id="copyresult">Copier</button>
+      <button id="btnClear">Effacer</button>
+    </div>
 
-  <div id="resizeControls" style="display:flex; justify-content:center; gap:10px; margin-top:10px;">
-    <button id="leftExpand">&lt;</button>
-    <button id="equalSplit">|</button>
-    <button id="rightExpand">&gt;</button>
-  </div>
+    <div id="resizeControls">
+	  <button id="leftExpand">
+		<img src="left.png" alt="Gauche" style="width:16px; height:16px;">
+	  </button>
+	  <button id="equalSplit"><img src="center.png" alt="Center" style="width:16px; height:16px;">
+	  </button>
+	  <button id="rightExpand">
+		<img src="right.png" alt="Droite" style="width:16px; height:16px;">
+	  </button>
 </div>
+  </div>
 
+  <!-- Résumé à droite -->
+  <p id="summaryHeader">🧾 Pas de données</p>
+</div>
 </br>
 <div id="container">
 	
@@ -449,7 +470,8 @@ document.getElementById('verif').addEventListener('click', () => {
   preview(corrected);
 });
 
-
+document.getElementById('btnClean').style.display = 'none';
+document.getElementById('verif').style.display = 'none';
 
 function corrigerTriplets(text) {
   let lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
@@ -511,7 +533,6 @@ function corrigerTriplets(text) {
 
 
 function preview(data) {
-  
   table.innerHTML = ''; // 🔄 Nettoyer le tableau
 
   const lines = data.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
@@ -521,19 +542,15 @@ function preview(data) {
 
   // 🧮 Lire ligne par ligne par groupes de 3 (triplets)
   for (let i = 0; i < lines.length - 2; i += 3) {
-    const produit = lines[i];
-    const quantite = lines[i + 1];
     const prix = lines[i + 2];
-
     const prixFloat = parseFloat(prix.replace(',', '.'));
     if (!isNaN(prixFloat)) total += prixFloat;
-
     count++;
   }
 
   // ✅ Mise à jour du résumé dans le titre HTML
-	const summaryHeader = document.getElementById('summaryHeader');
-	summaryHeader.textContent = `🧾 Nombre des lignes: ${count} | Montant Total: ${total.toFixed(2)} €`;
+  const summaryHeader = document.getElementById('summaryHeader');
+  summaryHeader.textContent = `🧾 Nombre des lignes: ${count} | Montant Total: ${total.toFixed(2)} €`;
 
   // 🧱 Ajouter les en-têtes
   const header = table.insertRow();
@@ -562,7 +579,13 @@ function preview(data) {
     cellQuantite.style.textAlign = 'center';
 
     const cellPrix = row.insertCell();
-    cellPrix.textContent = !isNaN(prixFloat) ? prixFloat.toFixed(2) : prix;
+    // ✅ Toujours afficher avec 2 décimales
+    if (!isNaN(prixFloat)) {
+      cellPrix.textContent = prixFloat.toFixed(2);
+    } else {
+      const fallbackFloat = parseFloat(prix.replace(',', '.'));
+      cellPrix.textContent = !isNaN(fallbackFloat) ? fallbackFloat.toFixed(2) : "0.00";
+    }
     cellPrix.style.textAlign = 'right';
 
     // 🎨 Mise en évidence si prix négatif
@@ -573,11 +596,10 @@ function preview(data) {
       });
     }
   }
-  //esory raha tsy mety
-    // ✅ Ajouter l'écouteur d'événement pour copier le contenu des cellules
+
+  // ✅ Ajouter l'écouteur d'événement pour copier le contenu des cellules
   table.addEventListener('click', function(event) {
     const target = event.target;
-
     if (target.tagName.toLowerCase() !== 'td') return;
 
     const row = target.parentElement;
@@ -587,16 +609,12 @@ function preview(data) {
     if (!text) return;
 
     navigator.clipboard.writeText(text).then(() => {
-      //console.log(`Texte copié : "${text}"`);
-
-      // ✅ Style temporaire avec transition fluide
       const originalColor = target.style.backgroundColor || 'transparent';
-	target.style.transition = 'background-color 0.3s ease';
-	target.style.backgroundColor = '#ffe066'; // jaune foncé doux
-
-	setTimeout(() => {
-	  target.style.backgroundColor = originalColor;
-	}, 1200);
+      target.style.transition = 'background-color 0.3s ease';
+      target.style.backgroundColor = '#ffe066'; // jaune foncé doux
+      setTimeout(() => {
+        target.style.backgroundColor = originalColor;
+      }, 1200);
     }).catch(err => {
       console.error('Erreur de copie :', err);
     });
