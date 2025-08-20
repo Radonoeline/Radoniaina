@@ -1285,29 +1285,28 @@ function showASINImage(src) {
 
   makeDraggableAndZoomable(canvas, true);
 
+//ZOOM SUR L'IMAGE ASIN
 // zoom avec roulette fluide
+// ======== 🆕 Zoom via molette (fluide et constant) ========
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
 
-  // Pas fixe par cran (0.5% ici pour plus de fluidité)
-  const step = 0.005;
+  let scale = parseFloat(canvas.dataset.scale) || 1;
+  const step = 0.05; // 5% par cran
 
-  // Sens du zoom : deltaY positif → zoom arrière, deltaY négatif → zoom avant
-  const direction = -Math.sign(e.deltaY);
+  scale += (e.deltaY < 0 ? step : -step);
+  scale = Math.min(Math.max(scale, 0.5), 3); // limites 50%-300%
 
-  // Applique le pas
-  currentScale += step * direction;
+  canvas.dataset.scale = scale;
 
-  // Limites du zoom : 20% à 200%
-  currentScale = Math.min(Math.max(currentScale, 0.2), 2);
+  const x = parseFloat(canvas.dataset.x) || 0;
+  const y = parseFloat(canvas.dataset.y) || 0;
+  const rotation = parseFloat(canvas.dataset.rotation) || 0;
 
-  // Redessine
-  requestAnimationFrame(() => {
-    drawImage(canvas.getContext("2d"), loadedImage, currentAngle, currentScale);
-  });
+  canvas.style.transform =
+    `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
 
-  // Affiche le pourcentage
-  console.log(`ASIN: ${Math.round(currentScale * 100)}%`);
+  console.log(`QUERY: ${Math.round(scale * 100)}%`);
 });
 
 
