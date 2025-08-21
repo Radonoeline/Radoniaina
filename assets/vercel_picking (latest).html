@@ -797,6 +797,7 @@ const queryBBox = document.getElementById("queryBBox");
 const queryWrapper = document.getElementById("floatingQueryWrapper");
 
 queryImg.src = rows[0]['Input.imageURL'];
+resetQueryTransform();
 queryWrapper.style.display = "block";
 
 // 🆕 Reset transform
@@ -840,7 +841,7 @@ queryImg.onload = () => {
   queryBBox.style.display = 'block';
 };
 
-
+//ZOOM IMAGE QUERY
 // ======== 🆕 Zoom via molette (fluide et constant) ========
 queryWrapper.addEventListener("wheel", (e) => {
   e.preventDefault();
@@ -863,8 +864,18 @@ queryWrapper.addEventListener("wheel", (e) => {
   queryWrapper.style.transform =
     `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
 
-  //console.log(`QUERY: ${Math.round(scale * 100)}%`);
+  console.log(`QUERY: ${Math.round(scale * 100)}%`);
 });
+// Reset complet avant d’afficher l’image et BBox
+function resetQueryTransform() {
+  queryWrapper.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)';
+  queryWrapper.dataset.x = 0;
+  queryWrapper.dataset.y = 0;
+  queryWrapper.dataset.scale = 1;
+  queryWrapper.dataset.rotation = 0;
+  currentQueryZoom = 1;       // si tu as des variables JS pour le zoom
+  currentQueryRotation = 0;   // idem pour rotation
+}
 
 // ======== Rotation avec double clic (ajoute +90° en continu) ========
 queryWrapper.ondblclick = () => {
@@ -980,14 +991,43 @@ asinList.forEach(asin => {
   }
 //FIN MODIFICATION ICI
 
-  const preview = findImage(rows[0], asin);
-  if (preview) {
-    const img = document.createElement('img');
-    img.src = preview;
-    img.className = 'preview-img';
-    img.onclick = () => showASINImage(preview);
-    asinInfo.appendChild(img);
+const preview = findImage(rows[0], asin);
+if (preview) {
+  const img = document.createElement('img');
+  img.src = preview;
+  img.className = 'preview-img';
+  img.onclick = () => {
+    // 🔹 Réinitialiser zoom et rotation ici
+    //resetZoomAndRotation();
+	    // 🔹 Reset du canvas avant d'afficher la nouvelle image
+    resetCanvasTransform();
+
+    // 🔹 Afficher la nouvelle image
+    showASINImage(preview);
+  };
+  asinInfo.appendChild(img);
+}
+
+
+// Exemple de fonction pour réinitialiser les transformations
+function resetZoomAndRotation() {
+  // Sélectionne le canvas sur lequel tu appliques le zoom
+  const canvas = document.querySelector('#canvas'); // adapte selon ton code
+  if (canvas) {
+    // Réinitialise les variables de dataset
+    canvas.dataset.scale = 1;
+    canvas.dataset.rotation = 0;
+    canvas.dataset.x = 0;
+    canvas.dataset.y = 0;
+
+    // Réinitialise le style CSS
+    canvas.style.transform = 'translate(0px, 0px) scale(1) rotate(0deg)';
+
+    // Réinitialise tes variables JS si tu en utilises
+    currentZoom = 1;
+    currentRotation = 0;
   }
+}
 
   asinBlock.appendChild(asinInfo);
 
@@ -1310,37 +1350,34 @@ function showASINImage(src) {
 
   makeDraggableAndZoomable(canvas, true);
 
-//ZOOM SUR L'IMAGE ASIN
-// zoom avec roulette fluide
-// ======== 🆕 Zoom via molette (fluide et constant) ========
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
+  // ======== Zoom via molette avec pas identique à QUERY (0.05 fixe) ========
+  if (!canvas.dataset.listenerAttached) {
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
 
-  let scale = parseFloat(canvas.dataset.scale) || 1;
-  const step = 0.005; // 0.5% par cran
+      const step = 0.05; // 5% par cran
+		// Zoom in/out
+      currentScale += e.deltaY < 0 ? step : -step;
+      currentScale = Math.min(Math.max(currentScale, 0.2), 2); // Clamp 50%-300%
 
-  scale += (e.deltaY < 0 ? step : -step);
-  scale = Math.min(Math.max(scale, 0.5), 3); // limites 50%-300%
+      // Redessine l'image
+      const ctx = canvas.getContext("2d");
+      resizeCanvasForRotation(canvas, loadedImage, currentAngle, currentScale);
+      drawImage(ctx, loadedImage, currentAngle, currentScale);
 
-  canvas.dataset.scale = scale;
+      console.log(`ASIN: ${Math.round(currentScale * 100)}%`);
+    });
 
-  const x = parseFloat(canvas.dataset.x) || 0;
-  const y = parseFloat(canvas.dataset.y) || 0;
-  const rotation = parseFloat(canvas.dataset.rotation) || 0;
+    canvas.dataset.listenerAttached = "true";
+  }
 
-  canvas.style.transform =
-    `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
-
-  console.log(`ASIN: ${Math.round(scale * 100)}%`);
-});
-
-
-  // Rotation avec double clic (animée)
+  // Double clic pour rotation
   canvas.ondblclick = () => {
     targetAngle += 90;
-    if (!isAnimating) animateRotation(ctx);
+    if (!isAnimating) animateRotation(canvas.getContext("2d"));
   };
 }
+
 
 
 
@@ -2784,6 +2821,30 @@ document.getElementById('hitContainer').addEventListener('change', (event) => {
     }
   }
 });
+
+function resetCanvasTransform() {
+  const canvas = document.getElementById("floatingASINCanvas");
+  if (!canvas) return;
+
+  // Reset variables globales du canvas
+  currentScale = 1;
+  currentAngle = 0;
+  targetAngle = 0;
+  canvas.dataset.scale = 1;
+  canvas.dataset.rotation = 0;
+  canvas.dataset.x = 0;
+  canvas.dataset.y = 0;
+
+  // Reset CSS transform si tu en as appliqué
+  canvas.style.transform = 'translate(0px,0px) scale(1) rotate(0deg)';
+
+  // Redessine l'image à l'état initial
+  if (loadedImage) {
+    const ctx = canvas.getContext("2d");
+    resizeCanvasForRotation(canvas, loadedImage, currentAngle, currentScale);
+    drawImage(ctx, loadedImage, currentAngle, currentScale);
+  }
+}
 
 
   </script>
