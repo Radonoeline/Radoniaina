@@ -436,6 +436,17 @@
             </div>
         </div>
     </div>
+	
+	<!-- Confirmation Popup -->
+<div id="confirmPopup" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:#fff; padding:20px; border-radius:10px; max-width:400px; text-align:center;">
+    <p id="confirmMessage" style="margin-bottom:20px; font-weight:bold;"></p>
+    <button id="confirmYes" style="margin-right:10px; padding:5px 15px;">OUI</button>
+    <button id="confirmNo" style="padding:5px 15px;">NON</button>
+  </div>
+</div>
+
 </body>
 
 
@@ -475,38 +486,42 @@ document.getElementById('Doit').addEventListener('click', function () {
         if (!asinText) {
             alert("Détails ASIN absent ou pas collé.");
             document.getElementById('dataAsin-data').style.border = '2px solid red';
-
-            // Retirer la bordure après 2 secondes
             setTimeout(() => {
                 document.getElementById('dataAsin-data').style.border = '';
             }, 2000);
             return;
         }
 
-        //console.log('Zone de texte ASIN sélectionnée');
-        // TODO: Ajouter votre traitement ici
-        // Exemple : processAsinText(asinText);
-		processDataDailyFromTextarea();
+        // Confirmation avant traitement
+        showConfirmation((confirmed) => {
+            if (confirmed) {
+                processDataDailyFromTextarea();
+            } else {
+                alert("Processus annulé. Veuillez vérifier votre Index.");
+            }
+        });
 
     } else if (sourceType === 'tsv_file') {
         const fileInput = document.getElementById('fileInput');
         const file = fileInput.files[0];
 
         if (file) {
-            const reader = new FileReader();
-
-            reader.onload = function (e) {
-                const content = e.target.result;
-                processDataDaily(content);
-                //console.log('Traitement du fichier TSV lancé');
-            };
-
-            reader.readAsText(file);
+            // Confirmation avant traitement
+            showConfirmation((confirmed) => {
+                if (confirmed) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const content = e.target.result;
+                        processDataDaily(content);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert("Processus annulé. Veuillez vérifier votre Index.");
+                }
+            });
         } else {
             alert("Veuillez sélectionner un fichier TSV.");
             fileInput.style.border = '2px solid red';
-
-            // Retirer la bordure après 2 secondes
             setTimeout(() => {
                 fileInput.style.border = '';
             }, 2000);
@@ -2890,7 +2905,35 @@ function generateescalier2() {
 }
 
 
+
+
+//CONFIRMATION POUR NE PAS OUBLIER DE CHANGER D'INDEX
+// Fonction pour afficher la popup de confirmation
+function showConfirmation(callback) {
+    const index = document.getElementById('picking_index').value;
+    const popup = document.getElementById('confirmPopup');
+    const msg = document.getElementById('confirmMessage');
+
+    msg.innerHTML = `
+    <div style="font-size:18px; font-weight:bold; color:#222; margin-bottom:15px;">
+        Est-ce bien l'Index Correcte ?
+    </div>
+    <div style="font-size:22px; font-weight:bold; color:#c62828; background:#ffe6e6; 
+                padding:10px 20px; border-radius:8px; border:2px solid #c62828; 
+                display:inline-block; letter-spacing:1px;">
+        >>>>>  ${index}  <<<<<
+    </div>
+`;
+    popup.style.display = "flex"; // affiche la popup
+
+    // Nettoyer anciens listeners pour éviter doublons
+    const yesBtn = document.getElementById('confirmYes');
+    const noBtn = document.getElementById('confirmNo');
+    yesBtn.onclick = () => { popup.style.display = "none"; callback(true); };
+    noBtn.onclick = () => { popup.style.display = "none"; callback(false); };
+}
+
+
+
 </script>
 </html>
-
-
