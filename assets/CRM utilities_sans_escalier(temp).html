@@ -322,10 +322,10 @@
 						<option value="furniture">MR FURNITURE</option> 
 						<option value="furniture_irr">MR FURNITURE IRR</option>
 					</select>
-                <label for="picking_day">Sélectionner une date :</label>
+                <label for="picking_day">DATE PRODUCTION:</label>
                 <input type="date" id="picking_day" />
 
-                <label for="picking_index">Sélectionner une Index :</label>
+                <label for="picking_index">INDEX:</label>
                 <select id="picking_index">
                     <option value="AIN-LMR-CAUI">AIN-LMR-CAUI</option>
                     <option value="AIN-LMR-COUI">AIN-LMR-COUI</option>
@@ -342,16 +342,16 @@
                 </select>
 
                 <div id="fileInputs">
-                    <label for="fileInput">Fichier TSV du Détails ASIN:</label>
+                    <label for="fileInput">FICHIER TSV DU DETAILS ASIN:</label>
                     <input type="file" id="fileInput" class="file-input" accept=".tsv">
                 </div>
 
                 <div id="textAreaContainer" style="display: none;">
-					<label for="dataAsin-data">Détails ASIN :</label>
+					<label for="dataAsin-data">DETAILS ASIN :</label>
 					<textarea id="dataAsin-data" rows="10" placeholder="Collez ici les détails ASIN..."></textarea>
 				</div>
 
-                <button id="Doit">Lancer le Process</button>
+                <button id="Doit">LANCER LE PROCESS</button>
 				<div id="radioContainer">
 				  <label><input type="radio" name="tableSelector" value="consensusAttributDetailed">Consensus par Attribut</label>
 				  <label><input type="radio" name="tableSelector" value="consensusWorkerID">Consensus par WorkerID</label>
@@ -364,7 +364,7 @@
 				</div>
 				
                 
-                <button id="exportButton">Exporter Fichier Brute</button></br>
+                <button id="exportButton">EXPORTER FICHIER BRUTE</button></br>
 				<!-- ✅ Fichier & bouton -->
 				<h2>Outils Score Training</h2>
 				<input type="file" id="fileInputx" accept=".tsv,.csv" />
@@ -2943,4 +2943,5 @@ function showConfirmation(callback) {
 
 </script>
 </html>
+
 
