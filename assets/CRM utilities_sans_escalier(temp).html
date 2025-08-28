@@ -2238,18 +2238,24 @@ document.getElementById('exportButton').addEventListener('click', function() {
 // DATE -01
 
 window.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('picking_day');
-    if (input) {
-      const now = new Date();
-      now.setDate(now.getDate() - 1); // J-1
+  const input = document.getElementById('picking_day');
+  if (input) {
+    const now = new Date();
 
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0'); // Mois (01-12)
-      const dd = String(now.getDate()).padStart(2, '0');      // Jour (01-31)
-
-      input.value = `${yyyy}-${mm}-${dd}`;
+    // Vérifie si aujourd'hui est lundi (0 = dimanche, 1 = lundi, ..., 6 = samedi)
+    if (now.getDay() === 1) {
+      now.setDate(now.getDate() - 3); // Vendredi précédent
+    } else {
+      now.setDate(now.getDate() - 1); // J-1 normal
     }
-  });
+
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+
+    input.value = `${yyyy}-${mm}-${dd}`;
+  }
+});
   
   
   
@@ -2937,3 +2943,4 @@ function showConfirmation(callback) {
 
 </script>
 </html>
+
