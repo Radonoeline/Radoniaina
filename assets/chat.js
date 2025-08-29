@@ -1,18 +1,12 @@
-// /api/chat.js
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Méthode non autorisée' });
 
   const { message, model = 'gpt2' } = req.body;
-
   if (!message) return res.status(400).json({ error: 'Message requis' });
 
   try {
-    const HF_TOKEN = process.env.HF_TOKEN; // clé cachée côté serveur
+    const HF_TOKEN = process.env.HF_TOKEN;
     if (!HF_TOKEN) return res.status(500).json({ error: 'Clé Hugging Face manquante' });
-
-    // Timeout de 15 secondes
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
       method: 'POST',
@@ -20,26 +14,20 @@ export default async function handler(req, res) {
         'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ inputs: message }),
-      signal: controller.signal
+      body: JSON.stringify({ inputs: message })
     });
 
-    clearTimeout(timeout);
-
-    if (!response.ok) return res.status(response.status).json({ error: `Erreur Hugging Face : ${response.status}` });
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ error: `Erreur Hugging Face : ${response.status} - ${errText}` });
+    }
 
     const data = await response.json();
-
-    // gérer différentes structures
-    let reply = 'Pas de réponse';
-    if (Array.isArray(data) && data[0]?.generated_text) reply = data[0].generated_text;
-    else if (data.generated_text) reply = data.generated_text;
-
+    const reply = Array.isArray(data) ? data[0]?.generated_text : data.generated_text || 'Pas de réponse';
     res.status(200).json({ reply });
 
   } catch (err) {
     console.error(err);
-    if (err.name === 'AbortError') res.status(504).json({ error: 'Timeout Hugging Face' });
-    else res.status(500).json({ error: err.message || 'Erreur interne' });
+    res.status(500).json({ error: err.message || 'Erreur interne' });
   }
 }
