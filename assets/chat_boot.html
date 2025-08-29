@@ -2,7 +2,6 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Chatbot Hugging Face</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
     h1 { text-align: center; }
@@ -17,7 +16,7 @@
   </style>
 </head>
 <body>
-  <h1>🤖 Mon Chatbot Hugging Face</h1>
+  
   <div id="chat-container">
     <div id="chat"></div>
   </div>
@@ -45,7 +44,7 @@
       chat.scrollTop = chat.scrollHeight;
 
       try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch('/api/chat.js', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: msg })
@@ -82,3 +81,4 @@
   </script>
 </body>
 </html>
+
