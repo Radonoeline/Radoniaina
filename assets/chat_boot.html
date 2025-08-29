@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot Hugging Face</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { text-align: center; }
+    #chat { border: 1px solid #ccc; border-radius: 8px; padding: 10px; height: 300px; overflow-y: auto; background: #fff; }
+    .msg { margin: 5px 0; }
+    .me { color: #0a84ff; }
+    .bot { color: #333; }
+    input { width: 80%; padding: 8px; }
+    button { width: 18%; padding: 8px; margin-left: 2%; }
+  </style>
+</head>
+<body>
+  <h1>🤖 Mon Chatbot Hugging Face</h1>
+  <div id="chat"></div>
+  <input id="msg" placeholder="Écris ton message...">
+  <button onclick="send()">Envoyer</button>
+
+  <script>
+    // ⚠️ Remplace par ta clé Hugging Face (à ne pas exposer publiquement si possible)
+    const HF_TOKEN = "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";
+    const MODEL = "gpt2"; // tu peux essayer "tiiuae/falcon-7b-instruct" ou "mistralai/Mistral-7B-Instruct-v0.1"
+
+    async function send() {
+      const msg = document.getElementById("msg").value;
+      if (!msg) return;
+      append("Toi", msg, "me");
+
+      const response = await fetch(`https://api-inference.huggingface.co/models/${MODEL}`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${HF_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ inputs: msg })
+      });
+
+      const result = await response.json();
+      console.log(result);
+
+      let text = (result[0]?.generated_text) || "Désolé, pas de réponse.";
+      append("Bot", text, "bot");
+
+      document.getElementById("msg").value = "";
+    }
+
+    function append(who, text, cls) {
+      const chat = document.getElementById("chat");
+      const div = document.createElement("div");
+      div.className = "msg " + cls;
+      div.innerHTML = `<b>${who}:</b> ${text}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>
