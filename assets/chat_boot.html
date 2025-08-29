@@ -7,7 +7,7 @@
     body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
     h1 { text-align: center; }
     #chat { border: 1px solid #ccc; border-radius: 8px; padding: 10px; height: 400px; overflow-y: auto; background: #fff; }
-    .msg { margin: 5px 0; padding: 5px 10px; border-radius: 8px; max-width: 80%; }
+    .msg { margin: 5px 0; padding: 5px 10px; border-radius: 6px; max-width: 80%; }
     .me { background: #d0e7ff; color: #0a84ff; align-self: flex-end; }
     .bot { background: #f1f1f1; color: #333; align-self: flex-start; }
     #chat-container { display: flex; flex-direction: column; gap: 5px; }
@@ -36,27 +36,31 @@
       append("Toi", msg, "me");
       msgInput.value = "";
 
-      // typing indicator
+      // Typing indicator
       append("Bot", "…", "bot");
 
       try {
-        const response = await fetch('chat.js', {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg, model: "gpt2" }) // tu peux changer le modèle si tu veux
+          body: JSON.stringify({ message: msg })
         });
 
-        const data = await response.json();
-
-        // supprimer le "…" de typing
         const chat = document.getElementById("chat");
         const lastBot = chat.querySelector(".bot:last-child");
-        if(lastBot) lastBot.remove();
+        if(lastBot) lastBot.remove(); // supprime "…"
+
+        if (!response.ok) {
+          append("Bot", "Erreur serveur : " + response.status, "bot");
+          return;
+        }
+
+        const data = await response.json();
 
         if(data.reply) {
           append("Bot", data.reply, "bot");
         } else if(data.error) {
-          append("Bot", "Erreur: " + data.error, "bot");
+          append("Bot", "Erreur : " + data.error, "bot");
         } else {
           append("Bot", "Pas de réponse.", "bot");
         }
@@ -65,7 +69,7 @@
         const chat = document.getElementById("chat");
         const lastBot = chat.querySelector(".bot:last-child");
         if(lastBot) lastBot.remove();
-        append("Bot", "Erreur de connexion au serveur.", "bot");
+        append("Bot", "Erreur de connexion.", "bot");
         console.error(err);
       }
     }
@@ -74,13 +78,10 @@
       const chat = document.getElementById("chat");
       const div = document.createElement("div");
       div.className = "msg " + cls;
-      div.textContent = text;
+      div.innerHTML = `<b>${who}:</b> ${text}`;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
   </script>
 </body>
 </html>
-
-
-
