@@ -6,12 +6,13 @@ export default async function handler(req, res) {
 
   try {
     const HF_TOKEN = process.env.HF_TOKEN;
+    console.log("HF_TOKEN présent :", !!HF_TOKEN);
     if (!HF_TOKEN) return res.status(500).json({ error: 'Clé Hugging Face manquante' });
 
     const response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`, // La clé est ici
+        'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ inputs: message })
