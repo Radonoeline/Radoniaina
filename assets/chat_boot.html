@@ -36,8 +36,13 @@
       append("Toi", msg, "me");
       msgInput.value = "";
 
-      // Typing indicator
-      append("Bot", "…", "bot");
+      // Ajouter le typing indicator
+      const chat = document.getElementById("chat");
+      const typingDiv = document.createElement("div");
+      typingDiv.className = "msg bot";
+      typingDiv.textContent = "…";
+      chat.appendChild(typingDiv);
+      chat.scrollTop = chat.scrollHeight;
 
       try {
         const response = await fetch('/api/chat', {
@@ -46,9 +51,8 @@
           body: JSON.stringify({ message: msg })
         });
 
-        const chat = document.getElementById("chat");
-        const lastBot = chat.querySelector(".bot:last-child");
-        if(lastBot) lastBot.remove(); // supprime "…"
+        // Supprimer le typing indicator
+        typingDiv.remove();
 
         if (!response.ok) {
           append("Bot", "Erreur serveur : " + response.status, "bot");
@@ -56,19 +60,12 @@
         }
 
         const data = await response.json();
+        const reply = data.reply || data.error || "Pas de réponse";
 
-        if(data.reply) {
-          append("Bot", data.reply, "bot");
-        } else if(data.error) {
-          append("Bot", "Erreur : " + data.error, "bot");
-        } else {
-          append("Bot", "Pas de réponse.", "bot");
-        }
+        append("Bot", reply, "bot");
 
       } catch (err) {
-        const chat = document.getElementById("chat");
-        const lastBot = chat.querySelector(".bot:last-child");
-        if(lastBot) lastBot.remove();
+        typingDiv.remove();
         append("Bot", "Erreur de connexion.", "bot");
         console.error(err);
       }
